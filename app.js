@@ -1,16 +1,23 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const nacl = window.nacl;
-  if (!nacl) {
+
+  /* =====================================================
+     DEPENDENCY CHECKS (DETERMINISTIC)
+  ===================================================== */
+  if (!window.bs58) {
+    console.error("bs58 not loaded");
+    return;
+  }
+  if (!window.nacl) {
     console.error("tweetnacl not loaded");
     return;
   }
+  if (!window.solanaWeb3) {
+    console.error("solanaWeb3 not loaded");
+    return;
+  }
 
-  // Browser-safe bs58
-   const bs58lib = window.bs58;
-    if (!bs58lib) {
-      console.error("bs58 not loaded");
-      return;
-    }
+  const bs58lib = window.bs58;
+  const nacl = window.nacl;
 
   /* =====================================================
      GLOBALS & CONNECTION
@@ -35,35 +42,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const quoteTimers = new WeakMap();
 
   /* =====================================================
-     TOKEN METADATA (BACKEND PROXY)
+     TOKEN METADATA
   ===================================================== */
   mintInput.addEventListener("input", () => {
     clearTimeout(mintTimer);
     mintTimer = setTimeout(async () => {
       const mint = mintInput.value.trim();
       if (mint.length < 32) return;
-      const meta = await fetchTokenMetadata(mint);
-      if (!meta) return;
-      tickerInput.value = meta.symbol || "";
-      logoPreview.src = meta.image || "";
-      logoText.style.display = meta.image ? "none" : "block";
-      refreshAllQuotes();
+
+      try {
+        const res = await fetch(`/api/new-address?mode=tokenMetadata&mint=${mint}`);
+        const json = await res.json();
+        if (!json.ok) return;
+
+        tickerInput.value = json.symbol || "";
+        logoPreview.src = json.image || "";
+        logoText.style.display = json.image ? "none" : "block";
+        refreshAllQuotes();
+      } catch {}
     }, 500);
   });
-
-  async function fetchTokenMetadata(mint) {
-    try {
-      const res = await fetch(
-        `/api/new-address?mode=tokenMetadata&mint=${mint}`
-      );
-      const json = await res.json();
-      if (!json.ok) return null;
-      return json;
-    } catch (err) {
-      console.error("Metadata error:", err);
-      return null;
-    }
-  }
 
   /* =====================================================
      SOL BALANCE
@@ -78,12 +76,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     JUPITER QUOTE (LITE API)
+     JUPITER QUOTE
   ===================================================== */
   async function getQuote(solAmount) {
     const mint = mintInput.value.trim();
     if (!mint || solAmount <= 0) return null;
+
     const lamports = Math.floor(solAmount * 1e9);
+
     try {
       const r = await fetch(
         `https://lite-api.jup.ag/swap/v1/quote` +
@@ -95,14 +95,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const q = await r.json();
       if (!q?.outAmount) return null;
       return q.outAmount / 10 ** q.outputDecimals;
-    } catch (err) {
-      console.error("Quote error:", err);
+    } catch {
       return null;
     }
   }
 
   /* =====================================================
-     WALLETS
+     WALLET UI
   ===================================================== */
   function createWallet(index) {
     const div = document.createElement("div");
@@ -112,26 +111,20 @@ document.addEventListener("DOMContentLoaded", () => {
         <span>Wallet ${index + 1}</span>
         <button class="danger">✕</button>
       </div>
+
       <div class="field">
         <label>Private Key</label>
-        <input
-          type="text"
-          class="secret-input"
-          placeholder="Base58 (seed or full key) or JSON array"
-          autocomplete="off"
-          autocapitalize="off"
-          spellcheck="false"
-          inputmode="none"
-        />
+        <input class="secret-input" placeholder="Base58 seed / full key / JSON" />
       </div>
+
       <div class="field amount-row">
         <div>
           <label class="sol-balance-label">Balance: -- SOL</label>
-          <input type="number" step="0.0001" min="0" placeholder="0.1" />
+          <input type="number" step="0.0001" min="0" />
         </div>
         <div>
           <label>Est. ${tickerInput.value || "Token"}</label>
-          <input type="text" readonly placeholder="0.00" />
+          <input type="text" readonly />
         </div>
       </div>
     `;
@@ -141,72 +134,37 @@ document.addEventListener("DOMContentLoaded", () => {
     const outInput = div.querySelector("input[readonly]");
     const balanceLabel = div.querySelector(".sol-balance-label");
 
-    /* ---- Fetch SOL balance when private key is entered ---- */
     pkInput.addEventListener("blur", async () => {
       let secret = pkInput.value.trim();
-      if (!secret) {
-        balanceLabel.textContent = "Balance: -- SOL";
-        return;
-      }
+      if (!secret) return;
 
       try {
-        // Remove invisible / bad chars
-        secret = secret.replace(
-          /[^123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz\[\],\s]/g,
-          ""
-        );
+        let secretKey;
 
-        console.log("[DEBUG] Cleaned length:", secret.length);
-
-        let secretKeyBytes;
-
-        // JSON array
         if (secret.startsWith("[")) {
           const arr = JSON.parse(secret);
-          if (!Array.isArray(arr) || arr.length !== 64) {
-            throw new Error("JSON key must be 64 numbers");
-          }
-          secretKeyBytes = Uint8Array.from(arr);
+          if (!Array.isArray(arr) || arr.length !== 64) throw 0;
+          secretKey = Uint8Array.from(arr);
         } else {
-          // Base58
-          let decoded;
-          try {
-            decoded = bs58lib.decode(secret);
-          } catch (e) {
-            throw new Error("Base58 decode failed");
-          }
+          const decoded = bs58lib.decode(secret);
 
-          console.log("[DEBUG] Decoded bytes:", decoded.length);
-
-          if (decoded.length === 64) {
-            // Full secret key
-            secretKeyBytes = decoded;
-          } else if (decoded.length === 32) {
-            // Seed → expand
-            console.log("[INFO] 32-byte seed detected, expanding via nacl");
-            const kp = nacl.sign.keyPair.fromSeed(decoded);
-            secretKeyBytes = kp.secretKey;
+          if (decoded.length === 32) {
+            secretKey = nacl.sign.keyPair.fromSeed(decoded).secretKey;
+          } else if (decoded.length === 64) {
+            secretKey = decoded;
           } else {
-            throw new Error(`Unexpected decoded size: ${decoded.length}`);
+            throw 0;
           }
         }
 
-        if (secretKeyBytes.length !== 64) {
-          throw new Error("Final secret key not 64 bytes");
-        }
-
-        const keypair = solanaWeb3.Keypair.fromSecretKey(secretKeyBytes);
-        console.log("[SUCCESS] Public key:", keypair.publicKey.toBase58());
-
-        const sol = await fetchSolBalance(keypair.publicKey);
+        const kp = solanaWeb3.Keypair.fromSecretKey(secretKey);
+        const sol = await fetchSolBalance(kp.publicKey);
         balanceLabel.textContent = `Balance: ${sol.toFixed(4)} SOL`;
-      } catch (err) {
-        console.error("[KEY PARSE FAIL]", err.message || err);
+      } catch {
         balanceLabel.textContent = "Balance: Invalid private key";
       }
     });
 
-    /* ---- Quote + total cost ---- */
     solInput.addEventListener("input", () => {
       updateTotalCost();
       debounceQuote(div, solInput, outInput);
@@ -222,7 +180,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     QUOTE DEBOUNCE
+     HELPERS
   ===================================================== */
   function debounceQuote(walletEl, solInput, outInput) {
     if (quoteTimers.has(walletEl)) {
@@ -236,14 +194,10 @@ document.addEventListener("DOMContentLoaded", () => {
     quoteTimers.set(walletEl, t);
   }
 
-  /* =====================================================
-     TOTAL COST
-  ===================================================== */
   function updateTotalCost() {
     let total = 0;
     document.querySelectorAll(".wallet input[type='number']").forEach(i => {
-      const v = Number(i.value);
-      if (v > 0) total += v;
+      total += Number(i.value) || 0;
     });
     totalCost.textContent = total.toFixed(4) + " SOL";
     buyBtn.disabled = total <= 0;
@@ -257,9 +211,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* =====================================================
-     INIT
-  ===================================================== */
   function renderWallets() {
     walletList.innerHTML = "";
     wallets.forEach((_, i) => walletList.appendChild(createWallet(i)));
@@ -276,5 +227,3 @@ document.addEventListener("DOMContentLoaded", () => {
   renderWallets();
   updateTotalCost();
 });
-
-
