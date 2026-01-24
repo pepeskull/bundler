@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Browser-safe bs58
-  const bs58lib = window.bs58?.default || window.bs58;
+  const bs58lib = window.bs58;
   if (!bs58lib) {
     console.error("bs58 not loaded");
     return;
@@ -276,3 +276,4 @@ document.addEventListener("DOMContentLoaded", () => {
   renderWallets();
   updateTotalCost();
 });
+
