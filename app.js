@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const nacl = window.nacl;
 
   /* =====================================================
-     INLINE BASE58 DECODER (NO DEPENDENCIES)
+     INLINE BASE58 DECODER
   ===================================================== */
   const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
   const MAP = {};
@@ -54,6 +54,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let mintTimer;
   const quoteTimers = new WeakMap();
 
+  // 🔑 token decimals from metadata (CRITICAL)
+  let tokenDecimals = null;
+
   /* =====================================================
      TOKEN METADATA (BACKEND PROXY)
   ===================================================== */
@@ -73,6 +76,9 @@ document.addEventListener("DOMContentLoaded", () => {
         tickerInput.value = j.symbol || "";
         logoPreview.src = j.image || "";
         logoText.style.display = j.image ? "none" : "block";
+
+        tokenDecimals = typeof j.decimals === "number" ? j.decimals : null;
+
         refreshAllQuotes();
       } catch (e) {
         console.error("Metadata error:", e);
@@ -100,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function getQuote(solAmount) {
     const mint = mintInput.value.trim();
     if (!mint || solAmount <= 0) return null;
-    if (!tickerInput.value) return null; // metadata not ready
+    if (tokenDecimals === null) return null;
 
     const lamports = Math.floor(solAmount * 1e9);
 
@@ -113,8 +119,15 @@ document.addEventListener("DOMContentLoaded", () => {
         `&slippageBps=50`
       );
       const q = await r.json();
+
       if (!q?.outAmount) return null;
-      return q.outAmount / 10 ** q.outputDecimals;
+
+      const amount =
+        Number(q.outAmount) / Math.pow(10, tokenDecimals);
+
+      if (!Number.isFinite(amount)) return null;
+
+      return amount;
     } catch {
       return null;
     }
@@ -212,7 +225,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const t = setTimeout(async () => {
       const q = await getQuote(Number(solInput.value));
-      outInput.value = q === null ? "--" : q.toFixed(4);
+      outInput.value =
+        typeof q === "number" && Number.isFinite(q)
+          ? q.toFixed(4)
+          : "--";
     }, 400);
 
     quoteTimers.set(walletEl, t);
@@ -237,12 +253,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     BUY BUTTON (PLACEHOLDER – NOW WORKS)
+     BUY BUTTON (NOW CLEAN PAYLOAD)
   ===================================================== */
   buyBtn.onclick = () => {
     const mint = mintInput.value.trim();
     if (!mint) {
-      alert("Enter a token mint address first");
+      console.warn("Missing mint");
       return;
     }
 
@@ -251,22 +267,26 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".wallet").forEach((w, i) => {
       const sol = Number(w.querySelector("input[type='number']").value);
       const est = w.querySelector("input[readonly]").value;
-      if (sol > 0) {
-        bundle.push({ wallet: i + 1, sol, est });
+
+      if (sol > 0 && est !== "--") {
+        bundle.push({
+          wallet: i + 1,
+          sol,
+          est: Number(est)
+        });
       }
     });
 
     if (!bundle.length) {
-      alert("Enter an amount for at least one wallet");
+      console.warn("No valid orders");
       return;
     }
 
     console.log("BUNDLE BUY PAYLOAD:", {
       mint,
+      decimals: tokenDecimals,
       bundle
     });
-
-    alert("Buy button works — check console");
   };
 
   /* =====================================================
