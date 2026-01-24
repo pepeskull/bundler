@@ -136,63 +136,68 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /* ---- Fetch SOL balance when private key is entered ---- */
     pkInput.addEventListener("blur", async () => {
-      const secret = pkInput.value.trim();
+      let secret = pkInput.value.trim();
       if (!secret) {
         balanceLabel.textContent = "Balance: -- SOL";
         return;
       }
     
       try {
+        // Aggressive cleanup: remove everything that's not valid Base58 chars
+        // This fixes most copy-paste issues (spaces, newlines, quotes, etc.)
+        secret = secret.replace(/[^123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]/g, '');
+    
+        console.log("Cleaned input length:", secret.length);
+        console.log("Cleaned input:", secret);
+    
+        if (secret.length !== 88 && secret.length !== 44) {  // 88 = full key, 44 ≈ 32-byte seed
+          throw new Error(`Input length after cleanup is ${secret.length} chars – expected ~88 for full key`);
+        }
+    
         let secretKeyBytes;
     
-        // 1. JSON array format: [12,34,56,...] (64 numbers)
+        // JSON array fallback (if someone pastes [12,34,...])
         if (secret.startsWith("[")) {
           const arr = JSON.parse(secret);
           if (!Array.isArray(arr) || arr.length !== 64) {
             throw new Error("JSON key must contain exactly 64 numbers");
           }
           secretKeyBytes = Uint8Array.from(arr);
-        }
-    
-        // 2. Base58 encoded string (88 chars → 64 bytes most common)
-        else {
-          // Use standalone bs58 instead of solanaWeb3's version
+        } else {
+          // Use Solana's built-in bs58 decoder
           let decoded;
           try {
-            decoded = bs58.decode(secret);   // ← this is the global from the new script
+            decoded = solanaWeb3.utils.bytes.bs58.decode(secret);
           } catch (decodeErr) {
-            console.error("bs58 decode error:", decodeErr);
-            throw new Error("Invalid base58 string – check for typos, spaces, or copy-paste issues");
+            console.error("Built-in bs58 decode failed:", decodeErr);
+            throw new Error("Invalid base58 string after cleanup – re-copy from wallet");
           }
+    
+          console.log("Decoded byte length:", decoded.length);
     
           if (decoded.length === 64) {
             secretKeyBytes = decoded;
           } else if (decoded.length === 32) {
-            // Rare: seed only → expand to full 64-byte secret key
             const naclKeypair = nacl.sign.keyPair.fromSeed(decoded);
             secretKeyBytes = naclKeypair.secretKey;
           } else {
-            throw new Error(
-              `Decoded to wrong length: ${decoded.length} bytes (expected 32 or 64). ` +
-              `Input was ${secret.length} chars long.`
-            );
+            throw new Error(`Decoded to unexpected length: ${decoded.length} bytes`);
           }
         }
     
-        // Safety check
         if (secretKeyBytes.length !== 64) {
-          throw new Error(`Secret key must be exactly 64 bytes (got ${secretKeyBytes.length})`);
+          throw new Error(`Secret key must be 64 bytes (got ${secretKeyBytes.length})`);
         }
     
         const keypair = solanaWeb3.Keypair.fromSecretKey(secretKeyBytes);
-        const pubkeyStr = keypair.publicKey.toBase58(); // just to confirm it works
-        console.log("Parsed successfully → Pubkey:", pubkeyStr);
+        const pubkey = keypair.publicKey.toBase58();
+        console.log("Successfully parsed → Public Key:", pubkey);
     
         const sol = await fetchSolBalance(keypair.publicKey);
         balanceLabel.textContent = `Balance: ${sol.toFixed(4)} SOL`;
       } catch (err) {
         console.warn("Key parse failed:", err.message || err);
-        balanceLabel.textContent = "Balance: Invalid private key";
+        balanceLabel.textContent = "Balance: Invalid private key – check console";
       }
     });
 
@@ -267,4 +272,5 @@ document.addEventListener("DOMContentLoaded", () => {
   renderWallets();
   updateTotalCost();
 });
+
 
