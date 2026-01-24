@@ -1,5 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
 
+const bs58 = window.bs58;
+const nacl = window.nacl;
+
+
 /* =====================================================
    GLOBALS & CONNECTION
 ===================================================== */
@@ -275,6 +279,7 @@ renderWallets();
 updateTotalCost();
 
 });
+
 
 
 
