@@ -118,13 +118,15 @@ function createWallet(index) {
 
     <div class="field">
       <label>Private Key</label>
-      <input
-        type="password"
-        placeholder="Base58 or JSON secret key"
-        autocomplete="off"
-        autocapitalize="off"
-        spellcheck="false"
-      />
+         <input
+           type="text"
+           class="secret-input"
+           placeholder="Base58 or JSON secret key"
+           autocomplete="off"
+           autocapitalize="off"
+           spellcheck="false"
+           inputmode="none"
+         />
     </div>
 
     <div class="field amount-row">
@@ -246,3 +248,4 @@ renderWallets();
 updateTotalCost();
 
 });
+
