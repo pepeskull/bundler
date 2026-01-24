@@ -135,71 +135,93 @@ document.addEventListener("DOMContentLoaded", () => {
     const balanceLabel = div.querySelector(".sol-balance-label");
 
     /* ---- Fetch SOL balance when private key is entered ---- */
-    pkInput.addEventListener("blur", async () => {
-      let secret = pkInput.value.trim();
-      if (!secret) {
-        balanceLabel.textContent = "Balance: -- SOL";
-        return;
+pkInput.addEventListener("blur", async () => {
+  let secret = pkInput.value.trim();
+  if (!secret) {
+    balanceLabel.textContent = "Balance: -- SOL";
+    return;
+  }
+
+  try {
+    // Step 1: Remove EVERYTHING that's not a valid Base58 character
+    // This fixes most copy-paste problems (spaces, newlines, quotes, tabs, zero-width spaces, etc.)
+    secret = secret.replace(/[^123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]/g, '');
+
+    console.log("[DEBUG] Cleaned input length:", secret.length);
+    console.log("[DEBUG] Cleaned input:", secret);
+
+    // Step 2: Lenient length check for real-world copy-paste issues
+    if (secret.length < 86 || secret.length > 90) {
+      throw new Error(
+        `Cleaned private key is ${secret.length} characters long.\n` +
+        `Solana full private keys (base58) are usually exactly 88 chars.\n` +
+        `Please re-copy the key fresh from your wallet (Phantom/Solflare/etc.)`
+      );
+    }
+
+    // Warn if length is off (but still try to decode)
+    if (secret.length !== 88) {
+      console.warn(`[WARNING] Non-standard length: ${secret.length} chars (expected 88) – attempting decode anyway`);
+    }
+
+    let secretKeyBytes;
+
+    // JSON array format fallback (if someone pastes [12,34,...])
+    if (secret.startsWith("[")) {
+      const arr = JSON.parse(secret);
+      if (!Array.isArray(arr) || arr.length !== 64) {
+        throw new Error("JSON array must contain exactly 64 numbers (0-255)");
       }
-    
+      secretKeyBytes = Uint8Array.from(arr);
+    } 
+    // Base58 string (most common case)
+    else {
+      let decoded;
       try {
-        // Aggressive cleanup: remove everything that's not valid Base58 chars
-        // This fixes most copy-paste issues (spaces, newlines, quotes, etc.)
-        secret = secret.replace(/[^123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]/g, '');
-    
-        console.log("Cleaned input length:", secret.length);
-        console.log("Cleaned input:", secret);
-    
-        if (secret.length !== 88 && secret.length !== 44) {  // 88 = full key, 44 ≈ 32-byte seed
-          throw new Error(`Input length after cleanup is ${secret.length} chars – expected ~88 for full key`);
-        }
-    
-        let secretKeyBytes;
-    
-        // JSON array fallback (if someone pastes [12,34,...])
-        if (secret.startsWith("[")) {
-          const arr = JSON.parse(secret);
-          if (!Array.isArray(arr) || arr.length !== 64) {
-            throw new Error("JSON key must contain exactly 64 numbers");
-          }
-          secretKeyBytes = Uint8Array.from(arr);
-        } else {
-          // Use Solana's built-in bs58 decoder
-          let decoded;
-          try {
-            decoded = solanaWeb3.utils.bytes.bs58.decode(secret);
-          } catch (decodeErr) {
-            console.error("Built-in bs58 decode failed:", decodeErr);
-            throw new Error("Invalid base58 string after cleanup – re-copy from wallet");
-          }
-    
-          console.log("Decoded byte length:", decoded.length);
-    
-          if (decoded.length === 64) {
-            secretKeyBytes = decoded;
-          } else if (decoded.length === 32) {
-            const naclKeypair = nacl.sign.keyPair.fromSeed(decoded);
-            secretKeyBytes = naclKeypair.secretKey;
-          } else {
-            throw new Error(`Decoded to unexpected length: ${decoded.length} bytes`);
-          }
-        }
-    
-        if (secretKeyBytes.length !== 64) {
-          throw new Error(`Secret key must be 64 bytes (got ${secretKeyBytes.length})`);
-        }
-    
-        const keypair = solanaWeb3.Keypair.fromSecretKey(secretKeyBytes);
-        const pubkey = keypair.publicKey.toBase58();
-        console.log("Successfully parsed → Public Key:", pubkey);
-    
-        const sol = await fetchSolBalance(keypair.publicKey);
-        balanceLabel.textContent = `Balance: ${sol.toFixed(4)} SOL`;
-      } catch (err) {
-        console.warn("Key parse failed:", err.message || err);
-        balanceLabel.textContent = "Balance: Invalid private key – check console";
+        decoded = solanaWeb3.utils.bytes.bs58.decode(secret);
+      } catch (decodeErr) {
+        console.error("[bs58 decode failed]", decodeErr);
+        throw new Error(
+          "Base58 decoding failed.\n" +
+          "This usually means:\n" +
+          "1. The key is incomplete / missing characters\n" +
+          "2. Wrong format (not a Solana private key)\n" +
+          "3. Copy-paste corruption\n\n" +
+          "Please export the private key again from your wallet."
+        );
       }
-    });
+
+      console.log("[DEBUG] Decoded byte length:", decoded.length);
+
+      if (decoded.length === 64) {
+        secretKeyBytes = decoded;
+      } else if (decoded.length === 32) {
+        // Rare case: only seed → expand using tweetnacl
+        const naclKeypair = nacl.sign.keyPair.fromSeed(decoded);
+        secretKeyBytes = naclKeypair.secretKey;
+      } else {
+        throw new Error(`Decoded to wrong size: ${decoded.length} bytes (expected 32 or 64)`);
+      }
+    }
+
+    // Final safety check
+    if (secretKeyBytes.length !== 64) {
+      throw new Error(`Secret key must be exactly 64 bytes after processing (got ${secretKeyBytes.length})`);
+    }
+
+    // Create keypair
+    const keypair = solanaWeb3.Keypair.fromSecretKey(secretKeyBytes);
+
+    // Success log – very useful to verify
+    console.log("[SUCCESS] Parsed private key → Public Key:", keypair.publicKey.toBase58());
+
+    const sol = await fetchSolBalance(keypair.publicKey);
+    balanceLabel.textContent = `Balance: ${sol.toFixed(4)} SOL`;
+  } catch (err) {
+    console.warn("[Key parse failed]", err.message || err);
+    balanceLabel.textContent = "Balance: Invalid private key – check console (F12)";
+  }
+});
 
     /* ---- Quote + total cost ---- */
     solInput.addEventListener("input", () => {
@@ -272,5 +294,6 @@ document.addEventListener("DOMContentLoaded", () => {
   renderWallets();
   updateTotalCost();
 });
+
 
 
