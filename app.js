@@ -1,9 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-
-const bs58 = window.bs58?.decode
-  ? window.bs58
-  : window.bs58?.default;
-
 const nacl = window.nacl;
 
 /* =====================================================
@@ -172,16 +167,16 @@ function createWallet(index) {
       );
     }
 
-    // Base58 string
+    // Base58 string (32 or 64 bytes)
     else {
-      const decoded = bs58.decode(secret);
+      const decoded = solanaWeb3.utils.bytes.bs58.decode(secret);
 
-      // 🔑 CASE 1: full secret key (64 bytes)
+      // 64-byte secret key
       if (decoded.length === 64) {
         keypair = solanaWeb3.Keypair.fromSecretKey(decoded);
       }
 
-      // 🔑 CASE 2: seed key (32 bytes) ← YOUR CASE
+      // 32-byte seed
       else if (decoded.length === 32) {
         const naclKeypair = nacl.sign.keyPair.fromSeed(decoded);
         keypair = solanaWeb3.Keypair.fromSecretKey(
@@ -281,6 +276,7 @@ renderWallets();
 updateTotalCost();
 
 });
+
 
 
 
