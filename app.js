@@ -5,6 +5,13 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  // Browser-safe bs58
+  const bs58lib = window.bs58?.default || window.bs58;
+  if (!bs58lib) {
+    console.error("bs58 not loaded");
+    return;
+  }
+
   /* =====================================================
      GLOBALS & CONNECTION
   ===================================================== */
@@ -110,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <input
           type="text"
           class="secret-input"
-          placeholder="Base58 (usually 88 chars) or JSON array"
+          placeholder="Base58 (seed or full key) or JSON array"
           autocomplete="off"
           autocapitalize="off"
           spellcheck="false"
@@ -141,68 +148,61 @@ document.addEventListener("DOMContentLoaded", () => {
         balanceLabel.textContent = "Balance: -- SOL";
         return;
       }
-    
+
       try {
-        // Cleanup: remove any non-Base58 chars (fixes paste issues)
-        secret = secret.replace(/[^123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]/g, '');
-    
+        // Remove invisible / bad chars
+        secret = secret.replace(
+          /[^123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz\[\],\s]/g,
+          ""
+        );
+
         console.log("[DEBUG] Cleaned length:", secret.length);
-        console.log("[DEBUG] Cleaned string:", secret);
-    
-        // For full key: 88 chars is standard; allow 87–89 to catch edge cases
-        if (secret.length < 86 || secret.length > 90) {
-          throw new Error(
-            `Key length after cleanup is ${secret.length} chars.\n` +
-            `Expected ~88 chars for Solana full private key.\n` +
-            `Re-export and copy exactly from wallet.`
-          );
-        }
-    
-        if (secret.length !== 88) {
-          console.warn(`[WARN] Length ${secret.length} (not 88) – trying anyway`);
-        }
-    
+
         let secretKeyBytes;
-    
-        // JSON array case
+
+        // JSON array
         if (secret.startsWith("[")) {
           const arr = JSON.parse(secret);
-          if (!Array.isArray(arr) || arr.length !== 64) throw new Error("JSON must be 64 numbers");
+          if (!Array.isArray(arr) || arr.length !== 64) {
+            throw new Error("JSON key must be 64 numbers");
+          }
           secretKeyBytes = Uint8Array.from(arr);
-        } 
-        // Base58 case – use standalone bs58
-        else {
+        } else {
+          // Base58
           let decoded;
           try {
-            decoded = bs58.decode(secret);  // ← standalone bs58
-            console.log("[DEBUG] Decoded bytes length:", decoded.length);
+            decoded = bs58lib.decode(secret);
           } catch (e) {
-            console.error("[bs58 error]", e);
-            throw new Error("Base58 decode failed – likely invalid/incomplete key string");
+            throw new Error("Base58 decode failed");
           }
-    
+
+          console.log("[DEBUG] Decoded bytes:", decoded.length);
+
           if (decoded.length === 64) {
+            // Full secret key
             secretKeyBytes = decoded;
           } else if (decoded.length === 32) {
-            const naclKp = nacl.sign.keyPair.fromSeed(decoded);
-            secretKeyBytes = naclKp.secretKey;
+            // Seed → expand
+            console.log("[INFO] 32-byte seed detected, expanding via nacl");
+            const kp = nacl.sign.keyPair.fromSeed(decoded);
+            secretKeyBytes = kp.secretKey;
           } else {
-            throw new Error(`Wrong decoded size: ${decoded.length} bytes`);
+            throw new Error(`Unexpected decoded size: ${decoded.length}`);
           }
         }
-    
+
         if (secretKeyBytes.length !== 64) {
-          throw new Error(`Final secret key not 64 bytes (got ${secretKeyBytes.length})`);
+          throw new Error("Final secret key not 64 bytes");
         }
-    
+
         const keypair = solanaWeb3.Keypair.fromSecretKey(secretKeyBytes);
         console.log("[SUCCESS] Public key:", keypair.publicKey.toBase58());
-    
+
         const sol = await fetchSolBalance(keypair.publicKey);
         balanceLabel.textContent = `Balance: ${sol.toFixed(4)} SOL`;
       } catch (err) {
-        console.error("[PARSE FAIL]", err.message || err);
-        balanceLabel.textContent = "Balance: Invalid private key – see console";
+        console.error("[KEY PARSE FAIL]", err.message || err);
+        balanceLabel.textContent = "Balance: Invalid private key";
       }
     });
 
@@ -272,12 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderWallets();
   };
 
-  // Start with one empty wallet
   wallets.push({});
   renderWallets();
   updateTotalCost();
 });
-
-
-
-
