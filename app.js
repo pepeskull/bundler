@@ -141,7 +141,7 @@ function createWallet(index) {
     </div>
   `;
 
-  const pkInput = div.querySelector("input[type='password']");
+  const pkInput = div.querySelector(".secret-input");
   const solInput = div.querySelector("input[type='number']");
   const outInput = div.querySelector("input[readonly]");
   const balanceLabel = div.querySelector(".sol-balance-label");
@@ -248,4 +248,5 @@ renderWallets();
 updateTotalCost();
 
 });
+
 
