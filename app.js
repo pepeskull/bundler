@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const nacl = window.nacl;
 
   /* =====================================================
-     INLINE BASE58 DECODER
+     BASE58 DECODER
   ===================================================== */
   const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
   const MAP = {};
@@ -36,6 +36,15 @@ document.addEventListener("DOMContentLoaded", () => {
     return Uint8Array.from(bytes.reverse());
   }
 
+  function base64ToBytes(b64) {
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) {
+      arr[i] = bin.charCodeAt(i);
+    }
+    return arr;
+  }
+
   /* =====================================================
      DOM
   ===================================================== */
@@ -53,12 +62,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let wallets = [];
   let mintTimer;
   const quoteTimers = new WeakMap();
-
-  // 🔑 token decimals from metadata (CRITICAL)
   let tokenDecimals = null;
 
   /* =====================================================
-     TOKEN METADATA (BACKEND PROXY)
+     TOKEN METADATA
   ===================================================== */
   mintInput.addEventListener("input", () => {
     clearTimeout(mintTimer);
@@ -66,179 +73,154 @@ document.addEventListener("DOMContentLoaded", () => {
       const mint = mintInput.value.trim();
       if (mint.length < 32) return;
 
-      try {
-        const r = await fetch(
-          `/api/new-address?mode=tokenMetadata&mint=${mint}`
-        );
-        const j = await r.json();
-        if (!j.ok) return;
+      const r = await fetch(
+        `/api/new-address?mode=tokenMetadata&mint=${mint}`
+      );
+      const j = await r.json();
+      if (!j.ok) return;
 
-        tickerInput.value = j.symbol || "";
-        logoPreview.src = j.image || "";
-        logoText.style.display = j.image ? "none" : "block";
+      tickerInput.value = j.symbol || "";
+      logoPreview.src = j.image || "";
+      logoText.style.display = j.image ? "none" : "block";
+      tokenDecimals = j.decimals ?? null;
 
-        tokenDecimals = typeof j.decimals === "number" ? j.decimals : null;
-
-        refreshAllQuotes();
-      } catch (e) {
-        console.error("Metadata error:", e);
-      }
+      refreshAllQuotes();
     }, 500);
   });
 
   /* =====================================================
-     SOL BALANCE (BACKEND RPC)
+     JUPITER SWAP (REAL)
   ===================================================== */
-  async function fetchSolBalance(pubkey) {
-    try {
-      const r = await fetch(`/api/sol-balance?pubkey=${pubkey}`);
-      const j = await r.json();
-      if (!r.ok) throw j;
-      return j.lamports / 1e9;
-    } catch {
-      return 0;
-    }
-  }
-
-  /* =====================================================
-     JUPITER QUOTE (LITE API)
-  ===================================================== */
-  async function getQuote(solAmount) {
+  async function executeJupiterSwap(secretKeyBytes, solAmount) {
     const mint = mintInput.value.trim();
-    if (!mint || solAmount <= 0) return null;
-    if (tokenDecimals === null) return null;
-
     const lamports = Math.floor(solAmount * 1e9);
 
-    try {
-      const r = await fetch(
-        `https://lite-api.jup.ag/swap/v1/quote` +
-        `?inputMint=So11111111111111111111111111111111111111112` +
-        `&outputMint=${mint}` +
-        `&amount=${lamports}` +
-        `&slippageBps=50`
-      );
-      const q = await r.json();
+    const quote = await fetch(
+      `https://lite-api.jup.ag/swap/v1/quote` +
+      `?inputMint=So11111111111111111111111111111111111111112` +
+      `&outputMint=${mint}` +
+      `&amount=${lamports}` +
+      `&slippageBps=50`
+    ).then(r => r.json());
 
-      if (!q?.outAmount) return null;
+    if (!quote?.outAmount) throw new Error("No Jupiter route");
 
-      const amount =
-        Number(q.outAmount) / Math.pow(10, tokenDecimals);
+    const kp = solanaWeb3.Keypair.fromSecretKey(secretKeyBytes);
 
-      if (!Number.isFinite(amount)) return null;
+    const swap = await fetch(
+      "https://lite-api.jup.ag/swap/v1/swap",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          quoteResponse: quote,
+          userPublicKey: kp.publicKey.toBase58(),
+          wrapAndUnwrapSol: true,
+          dynamicComputeUnitLimit: true,
+          prioritizationFeeLamports: "auto"
+        })
+      }
+    ).then(r => r.json());
 
-      return amount;
-    } catch {
-      return null;
+    if (!swap?.swapTransaction) {
+      throw new Error("No swap transaction");
     }
+
+    const tx = solanaWeb3.VersionedTransaction.deserialize(
+      base64ToBytes(swap.swapTransaction)
+    );
+
+    tx.sign([kp]);
+
+    // 🔒 SEND VIA BACKEND (RPC HIDDEN)
+    const res = await fetch("/api/send-tx", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rawTx: btoa(
+          String.fromCharCode(...tx.serialize())
+        )
+      })
+    }).then(r => r.json());
+
+    if (!res.ok) throw new Error(res.error);
+
+    return res.signature;
   }
 
   /* =====================================================
-     WALLETS
+     BUY BUNDLE
   ===================================================== */
-  function createWallet(index) {
-    const div = document.createElement("div");
-    div.className = "wallet";
-    div.innerHTML = `
-      <div class="wallet-header">
-        <span>Wallet ${index + 1}</span>
-        <button class="danger">✕</button>
-      </div>
+  buyBtn.onclick = async () => {
+    const jobs = [];
 
-      <div class="field">
-        <label>Private Key</label>
-        <input class="secret-input" placeholder="Base58 seed / full key / JSON" />
-      </div>
+    document.querySelectorAll(".wallet").forEach(w => {
+      const sol = Number(w.querySelector("input[type='number']").value);
+      const secret = w.querySelector(".secret-input").value.trim();
+      if (!sol || !secret) return;
 
-      <div class="field amount-row">
-        <div>
-          <label class="sol-balance-label">Balance: -- SOL</label>
-          <input type="number" step="0.0001" min="0" placeholder="0.1" />
-        </div>
-        <div>
-          <label>Est. ${tickerInput.value || "Token"}</label>
-          <input type="text" readonly placeholder="--" />
-        </div>
-      </div>
-    `;
+      let sk;
+      if (secret.startsWith("[")) {
+        sk = Uint8Array.from(JSON.parse(secret));
+      } else {
+        const d = base58Decode(secret);
+        sk = d.length === 32
+          ? nacl.sign.keyPair.fromSeed(d).secretKey
+          : d;
+      }
 
-    const pkInput = div.querySelector(".secret-input");
-    const solInput = div.querySelector("input[type='number']");
-    const outInput = div.querySelector("input[readonly]");
-    const balanceLabel = div.querySelector(".sol-balance-label");
+      jobs.push({ sol, sk });
+    });
 
-    /* ---- Balance ---- */
-    pkInput.addEventListener("blur", async () => {
-      const secret = pkInput.value.trim();
-      if (!secret) return;
+    if (!jobs.length) return;
 
-      try {
-        let secretKey;
+    const results = await Promise.allSettled(
+      jobs.map(j => executeJupiterSwap(j.sk, j.sol))
+    );
 
-        if (secret.startsWith("[")) {
-          const arr = JSON.parse(secret);
-          if (!Array.isArray(arr) || arr.length !== 64) throw 0;
-          secretKey = Uint8Array.from(arr);
-        } else {
-          const decoded = base58Decode(secret);
-          if (decoded.length === 32) {
-            secretKey = nacl.sign.keyPair.fromSeed(decoded).secretKey;
-          } else if (decoded.length === 64) {
-            secretKey = decoded;
-          } else {
-            throw 0;
-          }
-        }
-
-        const kp = solanaWeb3.Keypair.fromSecretKey(secretKey);
-        const sol = await fetchSolBalance(kp.publicKey.toBase58());
-        balanceLabel.textContent = `Balance: ${sol.toFixed(4)} SOL`;
-      } catch {
-        balanceLabel.textContent = "Balance: Invalid private key";
+    results.forEach((r, i) => {
+      if (r.status === "fulfilled") {
+        console.log(`Wallet ${i + 1} TX:`, r.value);
+      } else {
+        console.error(`Wallet ${i + 1} FAILED:`, r.reason);
       }
     });
-
-    /* ---- Quotes ---- */
-    solInput.addEventListener("input", () => {
-      updateTotalCost();
-      debounceQuote(div, solInput, outInput);
-    });
-
-    div.querySelector(".danger").onclick = () => {
-      wallets.splice(index, 1);
-      renderWallets();
-      updateTotalCost();
-    };
-
-    return div;
-  }
+  };
 
   /* =====================================================
-     QUOTES + TOTALS
+     UI HELPERS (unchanged)
   ===================================================== */
   function debounceQuote(walletEl, solInput, outInput) {
     if (quoteTimers.has(walletEl)) {
       clearTimeout(quoteTimers.get(walletEl));
     }
-
     outInput.value = "…";
-
     const t = setTimeout(async () => {
       const q = await getQuote(Number(solInput.value));
       outInput.value =
-        typeof q === "number" && Number.isFinite(q)
-          ? q.toFixed(4)
-          : "--";
+        typeof q === "number" ? q.toFixed(4) : "--";
     }, 400);
-
     quoteTimers.set(walletEl, t);
+  }
+
+  async function getQuote(solAmount) {
+    if (!tokenDecimals || solAmount <= 0) return null;
+    const lamports = Math.floor(solAmount * 1e9);
+    const q = await fetch(
+      `https://lite-api.jup.ag/swap/v1/quote` +
+      `?inputMint=So11111111111111111111111111111111111111112` +
+      `&outputMint=${mintInput.value}` +
+      `&amount=${lamports}` +
+      `&slippageBps=50`
+    ).then(r => r.json());
+    if (!q?.outAmount) return null;
+    return Number(q.outAmount) / 10 ** tokenDecimals;
   }
 
   function updateTotalCost() {
     let total = 0;
     document.querySelectorAll(".wallet input[type='number']").forEach(i => {
-      const v = Number(i.value);
-      if (v > 0) total += v;
+      total += Number(i.value) || 0;
     });
     totalCost.textContent = total.toFixed(4) + " SOL";
     buyBtn.disabled = total <= 0;
@@ -252,59 +234,44 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* =====================================================
-     BUY BUTTON (NOW CLEAN PAYLOAD)
-  ===================================================== */
-  buyBtn.onclick = () => {
-    const mint = mintInput.value.trim();
-    if (!mint) {
-      console.warn("Missing mint");
-      return;
-    }
-
-    const bundle = [];
-
-    document.querySelectorAll(".wallet").forEach((w, i) => {
-      const sol = Number(w.querySelector("input[type='number']").value);
-      const est = w.querySelector("input[readonly]").value;
-
-      if (sol > 0 && est !== "--") {
-        bundle.push({
-          wallet: i + 1,
-          sol,
-          est: Number(est)
-        });
-      }
-    });
-
-    if (!bundle.length) {
-      console.warn("No valid orders");
-      return;
-    }
-
-    console.log("BUNDLE BUY PAYLOAD:", {
-      mint,
-      decimals: tokenDecimals,
-      bundle
-    });
-  };
-
-  /* =====================================================
-     INIT
-  ===================================================== */
   function renderWallets() {
     walletList.innerHTML = "";
     wallets.forEach((_, i) => walletList.appendChild(createWallet(i)));
     walletCount.textContent = wallets.length;
   }
 
+  function createWallet(index) {
+    const div = document.createElement("div");
+    div.className = "wallet";
+    div.innerHTML = `
+      <div class="wallet-header">
+        <span>Wallet ${index + 1}</span>
+        <button class="danger">✕</button>
+      </div>
+      <div class="field">
+        <label>Private Key</label>
+        <input class="secret-input" />
+      </div>
+      <div class="field amount-row">
+        <input type="number" step="0.0001" />
+        <input type="text" readonly />
+      </div>
+    `;
+    div.querySelector("input[type='number']").oninput = () => {
+      updateTotalCost();
+      debounceQuote(div,
+        div.querySelector("input[type='number']"),
+        div.querySelector("input[readonly]")
+      );
+    };
+    return div;
+  }
+
   addWalletBtn.onclick = () => {
-    if (wallets.length >= 16) return;
     wallets.push({});
     renderWallets();
   };
 
   wallets.push({});
   renderWallets();
-  updateTotalCost();
 });
