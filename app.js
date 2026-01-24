@@ -8,9 +8,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  // rest of your code...
-});
-
 
 /* =====================================================
    GLOBALS & CONNECTION
@@ -287,6 +284,7 @@ renderWallets();
 updateTotalCost();
 
 });
+
 
 
 
