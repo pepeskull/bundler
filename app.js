@@ -10,34 +10,41 @@ const logoPreview = document.getElementById("logoPreview");
 const logoText = document.getElementById("logoText");
 
 let wallets = [];
-let tokenDecimals = 0;
 let mintTimer;
 const quoteTimers = new WeakMap();
 
-/* ---------------- TOKEN METADATA ---------------- */
+/* ---------------- TOKEN METADATA (BACKEND) ---------------- */
 
 mintInput.addEventListener("input", () => {
   clearTimeout(mintTimer);
+
   mintTimer = setTimeout(async () => {
-    if (mintInput.value.length < 32) return;
-    const meta = await fetchTokenMetadata(mintInput.value.trim());
+    const mint = mintInput.value.trim();
+    if (mint.length < 32) return;
+
+    const meta = await fetchTokenMetadata(mint);
     if (!meta) return;
 
     tickerInput.value = meta.symbol || "";
-    tokenDecimals = meta.decimals || 0;
     logoPreview.src = meta.image || "";
     logoText.style.display = meta.image ? "none" : "block";
 
     refreshAllQuotes();
-  }, 600);
+  }, 500);
 });
 
 async function fetchTokenMetadata(mint) {
   try {
-    const r = await fetch(`https://token.jup.ag/strict/${mint}`);
-    if (!r.ok) throw new Error();
-    return await r.json();
-  } catch {
+    const res = await fetch(
+      `/api/new-address?mode=tokenMetadata&mint=${mint}`
+    );
+
+    const json = await res.json();
+    if (!json.ok) return null;
+
+    return json;
+  } catch (err) {
+    console.error("Metadata error:", err);
     return null;
   }
 }
@@ -82,21 +89,19 @@ function createWallet(index) {
 
     <div class="field">
       <label>Private Key</label>
-      <input type="password" placeholder="Base58 or JSON secret key" />
+      <input type="password" />
     </div>
 
     <div class="field amount-row">
       <div>
         <label>Buy Amount (SOL)</label>
-        <input type="number" step="0.0001" min="0" placeholder="0.1" />
+        <input type="number" step="0.0001" min="0" />
       </div>
       <div>
         <label>Est. ${tickerInput.value || "Token"}</label>
-        <input type="text" readonly placeholder="0.00" />
+        <input type="text" readonly />
       </div>
     </div>
-
-    <p class="muted">Balance: 0.00 SOL</p>
   `;
 
   const solInput = div.querySelector("input[type='number']");
@@ -124,10 +129,9 @@ function debounceQuote(walletEl, solInput, outInput) {
   outInput.value = "…";
 
   const t = setTimeout(async () => {
-    const sol = parseFloat(solInput.value);
-    const q = await getQuote(sol);
+    const q = await getQuote(Number(solInput.value));
     outInput.value = q ? q.toFixed(4) : "0.00";
-  }, 500);
+  }, 400);
 
   quoteTimers.set(walletEl, t);
 }
@@ -137,8 +141,8 @@ function debounceQuote(walletEl, solInput, outInput) {
 function updateTotalCost() {
   let total = 0;
   document.querySelectorAll(".wallet input[type='number']").forEach(i => {
-    const v = parseFloat(i.value);
-    if (!isNaN(v) && v > 0) total += v;
+    const v = Number(i.value);
+    if (v > 0) total += v;
   });
 
   totalCost.textContent = total.toFixed(4) + " SOL";
