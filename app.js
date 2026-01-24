@@ -141,10 +141,10 @@ document.addEventListener("DOMContentLoaded", () => {
         balanceLabel.textContent = "Balance: -- SOL";
         return;
       }
-
+    
       try {
         let secretKeyBytes;
-
+    
         // 1. JSON array format: [12,34,56,...] (64 numbers)
         if (secret.startsWith("[")) {
           const arr = JSON.parse(secret);
@@ -153,38 +153,42 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           secretKeyBytes = Uint8Array.from(arr);
         }
-
-        // 2. Base58 encoded string (most common: 88 chars → 64 bytes)
+    
+        // 2. Base58 encoded string (88 chars → 64 bytes most common)
         else {
+          // Use standalone bs58 instead of solanaWeb3's version
           let decoded;
           try {
-            decoded = solanaWeb3.utils.bytes.bs58.decode(secret);
-          } catch (e) {
-            throw new Error("Invalid base58 encoding");
+            decoded = bs58.decode(secret);   // ← this is the global from the new script
+          } catch (decodeErr) {
+            console.error("bs58 decode error:", decodeErr);
+            throw new Error("Invalid base58 string – check for typos, spaces, or copy-paste issues");
           }
-
+    
           if (decoded.length === 64) {
             secretKeyBytes = decoded;
           } else if (decoded.length === 32) {
-            // Rare: only seed → derive full 64-byte secret key
+            // Rare: seed only → expand to full 64-byte secret key
             const naclKeypair = nacl.sign.keyPair.fromSeed(decoded);
             secretKeyBytes = naclKeypair.secretKey;
           } else {
             throw new Error(
-              `Invalid key length after decoding: ${decoded.length} bytes ` +
-              `(expected 32 or 64). Your key is ${secret.length} characters.`
+              `Decoded to wrong length: ${decoded.length} bytes (expected 32 or 64). ` +
+              `Input was ${secret.length} chars long.`
             );
           }
         }
-
-        // Final validation
+    
+        // Safety check
         if (secretKeyBytes.length !== 64) {
-          throw new Error(`Secret key must be 64 bytes (got ${secretKeyBytes.length})`);
+          throw new Error(`Secret key must be exactly 64 bytes (got ${secretKeyBytes.length})`);
         }
-
+    
         const keypair = solanaWeb3.Keypair.fromSecretKey(secretKeyBytes);
+        const pubkeyStr = keypair.publicKey.toBase58(); // just to confirm it works
+        console.log("Parsed successfully → Pubkey:", pubkeyStr);
+    
         const sol = await fetchSolBalance(keypair.publicKey);
-
         balanceLabel.textContent = `Balance: ${sol.toFixed(4)} SOL`;
       } catch (err) {
         console.warn("Key parse failed:", err.message || err);
@@ -263,3 +267,4 @@ document.addEventListener("DOMContentLoaded", () => {
   renderWallets();
   updateTotalCost();
 });
+
