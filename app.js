@@ -1,23 +1,53 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-  /* =====================================================
-     DEPENDENCY CHECKS (DETERMINISTIC)
-  ===================================================== */
-  if (!window.bs58) {
-    console.error("bs58 not loaded");
+  if (!window.solanaWeb3) {
+    console.error("solanaWeb3 not loaded");
     return;
   }
   if (!window.nacl) {
     console.error("tweetnacl not loaded");
     return;
   }
-  if (!window.solanaWeb3) {
-    console.error("solanaWeb3 not loaded");
-    return;
+
+  const nacl = window.nacl;
+
+  /* =====================================================
+     MINIMAL BASE58 DECODER (INLINE, NO DEPENDENCIES)
+     Supports Solana keys perfectly
+  ===================================================== */
+  const BASE58_ALPHABET =
+    "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  const BASE58_MAP = {};
+  for (let i = 0; i < BASE58_ALPHABET.length; i++) {
+    BASE58_MAP[BASE58_ALPHABET[i]] = i;
   }
 
-  const bs58lib = window.bs58;
-  const nacl = window.nacl;
+  function base58Decode(str) {
+    let bytes = [0];
+    for (let i = 0; i < str.length; i++) {
+      const c = str[i];
+      if (!(c in BASE58_MAP)) {
+        throw new Error("Invalid Base58 character");
+      }
+      let carry = BASE58_MAP[c];
+      for (let j = 0; j < bytes.length; j++) {
+        carry += bytes[j] * 58;
+        bytes[j] = carry & 0xff;
+        carry >>= 8;
+      }
+      while (carry > 0) {
+        bytes.push(carry & 0xff);
+        carry >>= 8;
+      }
+    }
+
+    // handle leading zeros
+    for (let i = 0; i < str.length && str[i] === "1"; i++) {
+      bytes.push(0);
+    }
+
+    return Uint8Array.from(bytes.reverse());
+  }
 
   /* =====================================================
      GLOBALS & CONNECTION
@@ -33,35 +63,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const logoText = document.getElementById("logoText");
 
   const connection = new solanaWeb3.Connection(
-    "https://mainnet.helius-rpc.com/?api-key=51e57348-eaad-440e-8403-7d7cf1aa34e3",
+    "https://api.mainnet-beta.solana.com",
     "confirmed"
   );
 
   let wallets = [];
-  let mintTimer;
   const quoteTimers = new WeakMap();
-
-  /* =====================================================
-     TOKEN METADATA
-  ===================================================== */
-  mintInput.addEventListener("input", () => {
-    clearTimeout(mintTimer);
-    mintTimer = setTimeout(async () => {
-      const mint = mintInput.value.trim();
-      if (mint.length < 32) return;
-
-      try {
-        const res = await fetch(`/api/new-address?mode=tokenMetadata&mint=${mint}`);
-        const json = await res.json();
-        if (!json.ok) return;
-
-        tickerInput.value = json.symbol || "";
-        logoPreview.src = json.image || "";
-        logoText.style.display = json.image ? "none" : "block";
-        refreshAllQuotes();
-      } catch {}
-    }, 500);
-  });
 
   /* =====================================================
      SOL BALANCE
@@ -76,32 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     JUPITER QUOTE
-  ===================================================== */
-  async function getQuote(solAmount) {
-    const mint = mintInput.value.trim();
-    if (!mint || solAmount <= 0) return null;
-
-    const lamports = Math.floor(solAmount * 1e9);
-
-    try {
-      const r = await fetch(
-        `https://lite-api.jup.ag/swap/v1/quote` +
-        `?inputMint=So11111111111111111111111111111111111111112` +
-        `&outputMint=${mint}` +
-        `&amount=${lamports}` +
-        `&slippageBps=50`
-      );
-      const q = await r.json();
-      if (!q?.outAmount) return null;
-      return q.outAmount / 10 ** q.outputDecimals;
-    } catch {
-      return null;
-    }
-  }
-
-  /* =====================================================
-     WALLET UI
+     WALLETS
   ===================================================== */
   function createWallet(index) {
     const div = document.createElement("div");
@@ -131,7 +113,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const pkInput = div.querySelector(".secret-input");
     const solInput = div.querySelector("input[type='number']");
-    const outInput = div.querySelector("input[readonly]");
     const balanceLabel = div.querySelector(".sol-balance-label");
 
     pkInput.addEventListener("blur", async () => {
@@ -143,72 +124,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (secret.startsWith("[")) {
           const arr = JSON.parse(secret);
-          if (!Array.isArray(arr) || arr.length !== 64) throw 0;
+          if (!Array.isArray(arr) || arr.length !== 64) {
+            throw new Error("Invalid JSON key");
+          }
           secretKey = Uint8Array.from(arr);
         } else {
-          const decoded = bs58lib.decode(secret);
+          const decoded = base58Decode(secret);
 
           if (decoded.length === 32) {
             secretKey = nacl.sign.keyPair.fromSeed(decoded).secretKey;
           } else if (decoded.length === 64) {
             secretKey = decoded;
           } else {
-            throw 0;
+            throw new Error("Invalid key length");
           }
         }
 
         const kp = solanaWeb3.Keypair.fromSecretKey(secretKey);
         const sol = await fetchSolBalance(kp.publicKey);
         balanceLabel.textContent = `Balance: ${sol.toFixed(4)} SOL`;
-      } catch {
+      } catch (e) {
+        console.error(e);
         balanceLabel.textContent = "Balance: Invalid private key";
       }
-    });
-
-    solInput.addEventListener("input", () => {
-      updateTotalCost();
-      debounceQuote(div, solInput, outInput);
     });
 
     div.querySelector(".danger").onclick = () => {
       wallets.splice(index, 1);
       renderWallets();
-      updateTotalCost();
     };
 
     return div;
-  }
-
-  /* =====================================================
-     HELPERS
-  ===================================================== */
-  function debounceQuote(walletEl, solInput, outInput) {
-    if (quoteTimers.has(walletEl)) {
-      clearTimeout(quoteTimers.get(walletEl));
-    }
-    outInput.value = "…";
-    const t = setTimeout(async () => {
-      const q = await getQuote(Number(solInput.value));
-      outInput.value = q ? q.toFixed(4) : "0.00";
-    }, 400);
-    quoteTimers.set(walletEl, t);
-  }
-
-  function updateTotalCost() {
-    let total = 0;
-    document.querySelectorAll(".wallet input[type='number']").forEach(i => {
-      total += Number(i.value) || 0;
-    });
-    totalCost.textContent = total.toFixed(4) + " SOL";
-    buyBtn.disabled = total <= 0;
-  }
-
-  function refreshAllQuotes() {
-    document.querySelectorAll(".wallet").forEach(w => {
-      const sol = w.querySelector("input[type='number']");
-      const out = w.querySelector("input[readonly]");
-      if (sol.value > 0) debounceQuote(w, sol, out);
-    });
   }
 
   function renderWallets() {
@@ -225,5 +171,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
   wallets.push({});
   renderWallets();
-  updateTotalCost();
 });
