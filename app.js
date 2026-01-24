@@ -1,3 +1,5 @@
+document.addEventListener("DOMContentLoaded", () => {
+
 /* =====================================================
    GLOBALS & CONNECTION
 ===================================================== */
@@ -49,7 +51,6 @@ async function fetchTokenMetadata(mint) {
     const res = await fetch(
       `/api/new-address?mode=tokenMetadata&mint=${mint}`
     );
-
     const json = await res.json();
     if (!json.ok) return null;
     return json;
@@ -73,7 +74,7 @@ async function fetchSolBalance(pubkey) {
 }
 
 /* =====================================================
-   JUPITER QUOTE (LITE API – FIXED DNS)
+   JUPITER QUOTE (LITE API)
 ===================================================== */
 
 async function getQuote(solAmount) {
@@ -117,7 +118,13 @@ function createWallet(index) {
 
     <div class="field">
       <label>Private Key</label>
-      <input type="password" placeholder="Base58 or JSON secret key" />
+      <input
+        type="password"
+        placeholder="Base58 or JSON secret key"
+        autocomplete="off"
+        autocapitalize="off"
+        spellcheck="false"
+      />
     </div>
 
     <div class="field amount-row">
@@ -137,7 +144,7 @@ function createWallet(index) {
   const outInput = div.querySelector("input[readonly]");
   const balanceLabel = div.querySelector(".sol-balance-label");
 
-  /* ---- Fetch SOL balance when PK entered ---- */
+  /* ---- Fetch SOL balance ---- */
   pkInput.addEventListener("blur", async () => {
     try {
       const secret = pkInput.value.trim();
@@ -149,7 +156,9 @@ function createWallet(index) {
           Uint8Array.from(JSON.parse(secret))
         );
       } else {
-        keypair = solanaWeb3.Keypair.fromSecretKey(bs58.decode(secret));
+        keypair = solanaWeb3.Keypair.fromSecretKey(
+          bs58.decode(secret)
+        );
       }
 
       const sol = await fetchSolBalance(keypair.publicKey);
@@ -199,7 +208,6 @@ function debounceQuote(walletEl, solInput, outInput) {
 
 function updateTotalCost() {
   let total = 0;
-
   document.querySelectorAll(".wallet input[type='number']").forEach(i => {
     const v = Number(i.value);
     if (v > 0) total += v;
@@ -236,3 +244,5 @@ addWalletBtn.onclick = () => {
 wallets.push({});
 renderWallets();
 updateTotalCost();
+
+});
