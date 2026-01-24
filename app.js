@@ -148,27 +148,44 @@ function createWallet(index) {
 
   /* ---- Fetch SOL balance ---- */
   pkInput.addEventListener("blur", async () => {
-    try {
-      const secret = pkInput.value.trim();
-      if (!secret) return;
+  const secret = pkInput.value.trim();
+  if (!secret) return;
 
-      let keypair;
-      if (secret.startsWith("[")) {
-        keypair = solanaWeb3.Keypair.fromSecretKey(
-          Uint8Array.from(JSON.parse(secret))
-        );
-      } else {
-        keypair = solanaWeb3.Keypair.fromSecretKey(
-          bs58.decode(secret)
+  try {
+    let secretKeyBytes;
+
+    // JSON array format
+    if (secret.startsWith("[")) {
+      const arr = JSON.parse(secret);
+      if (!Array.isArray(arr) || arr.length !== 64) {
+        throw new Error("Invalid JSON key length");
+      }
+      secretKeyBytes = Uint8Array.from(arr);
+    }
+
+    // Base58 format
+    else {
+      const decoded = bs58.decode(secret);
+
+      if (decoded.length !== 64) {
+        throw new Error(
+          `Invalid secret key length (${decoded.length} bytes)`
         );
       }
 
-      const sol = await fetchSolBalance(keypair.publicKey);
-      balanceLabel.textContent = `Balance: ${sol.toFixed(4)} SOL`;
-    } catch {
-      balanceLabel.textContent = "Balance: Invalid key";
+      secretKeyBytes = decoded;
     }
-  });
+
+    const keypair = solanaWeb3.Keypair.fromSecretKey(secretKeyBytes);
+    const sol = await fetchSolBalance(keypair.publicKey);
+
+    balanceLabel.textContent = `Balance: ${sol.toFixed(4)} SOL`;
+
+  } catch (err) {
+    console.warn("Key parse failed:", err.message);
+    balanceLabel.textContent = "Balance: Unsupported key format";
+  }
+});
 
   /* ---- Quote + total ---- */
   solInput.addEventListener("input", () => {
@@ -248,5 +265,6 @@ renderWallets();
 updateTotalCost();
 
 });
+
 
 
