@@ -10,18 +10,17 @@
 
 <div class="app">
 
-  <!-- TOKEN INFO -->
   <section class="card">
     <h2>Token Details</h2>
 
     <div class="field">
       <label>Mint Address *</label>
-      <input id="mintAddress" type="text" placeholder="SPL Contract Address" />
+      <input id="mintAddress" placeholder="SPL Contract Address" />
     </div>
 
     <div class="field">
       <label>Ticker</label>
-      <input id="tokenTicker" readonly placeholder="Auto-filled" />
+      <input id="tokenTicker" readonly />
     </div>
 
     <div class="field">
@@ -33,7 +32,6 @@
     </div>
   </section>
 
-  <!-- WALLETS -->
   <section class="card">
     <h2>Wallet Bundle</h2>
     <div id="walletList"></div>
@@ -44,7 +42,7 @@
   </section>
 
   <section class="warning">
-    ⚠️ We do <b>NOT</b> store keys. Use fresh wallets with exact SOL.
+    ⚠️ We do <b>NOT</b> store private keys.
   </section>
 
   <footer class="footer">
