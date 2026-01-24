@@ -6,11 +6,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Browser-safe bs58
-  const bs58lib = window.bs58;
-  if (!bs58lib) {
-    console.error("bs58 not loaded");
-    return;
-  }
+   const bs58lib = window.bs58;
+    if (!bs58lib) {
+      console.error("bs58 not loaded");
+      return;
+    }
 
   /* =====================================================
      GLOBALS & CONNECTION
@@ -276,4 +276,5 @@ document.addEventListener("DOMContentLoaded", () => {
   renderWallets();
   updateTotalCost();
 });
+
 
