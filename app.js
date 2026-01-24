@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const nacl = window.nacl;
 
   /* =====================================================
-     INLINE BASE58 DECODER
+     INLINE BASE58 DECODER (NO DEPENDENCIES)
   ===================================================== */
   const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
   const MAP = {};
@@ -100,6 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function getQuote(solAmount) {
     const mint = mintInput.value.trim();
     if (!mint || solAmount <= 0) return null;
+    if (!tickerInput.value) return null; // metadata not ready
 
     const lamports = Math.floor(solAmount * 1e9);
 
@@ -143,7 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         <div>
           <label>Est. ${tickerInput.value || "Token"}</label>
-          <input type="text" readonly placeholder="0.00" />
+          <input type="text" readonly placeholder="--" />
         </div>
       </div>
     `;
@@ -153,6 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const outInput = div.querySelector("input[readonly]");
     const balanceLabel = div.querySelector(".sol-balance-label");
 
+    /* ---- Balance ---- */
     pkInput.addEventListener("blur", async () => {
       const secret = pkInput.value.trim();
       if (!secret) return;
@@ -183,6 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+    /* ---- Quotes ---- */
     solInput.addEventListener("input", () => {
       updateTotalCost();
       debounceQuote(div, solInput, outInput);
@@ -204,11 +207,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (quoteTimers.has(walletEl)) {
       clearTimeout(quoteTimers.get(walletEl));
     }
+
     outInput.value = "…";
+
     const t = setTimeout(async () => {
       const q = await getQuote(Number(solInput.value));
-      outInput.value = q ? q.toFixed(4) : "0.00";
+      outInput.value = q === null ? "--" : q.toFixed(4);
     }, 400);
+
     quoteTimers.set(walletEl, t);
   }
 
@@ -229,6 +235,39 @@ document.addEventListener("DOMContentLoaded", () => {
       if (sol.value > 0) debounceQuote(w, sol, out);
     });
   }
+
+  /* =====================================================
+     BUY BUTTON (PLACEHOLDER – NOW WORKS)
+  ===================================================== */
+  buyBtn.onclick = () => {
+    const mint = mintInput.value.trim();
+    if (!mint) {
+      alert("Enter a token mint address first");
+      return;
+    }
+
+    const bundle = [];
+
+    document.querySelectorAll(".wallet").forEach((w, i) => {
+      const sol = Number(w.querySelector("input[type='number']").value);
+      const est = w.querySelector("input[readonly]").value;
+      if (sol > 0) {
+        bundle.push({ wallet: i + 1, sol, est });
+      }
+    });
+
+    if (!bundle.length) {
+      alert("Enter an amount for at least one wallet");
+      return;
+    }
+
+    console.log("BUNDLE BUY PAYLOAD:", {
+      mint,
+      bundle
+    });
+
+    alert("Buy button works — check console");
+  };
 
   /* =====================================================
      INIT
