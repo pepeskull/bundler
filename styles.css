@@ -137,3 +137,8 @@ button {
   .amount-row { grid-template-columns:1fr; }
   .footer { flex-direction:column; gap:8px; }
 }
+
+.secret-input {
+  -webkit-text-security: disc;
+  text-security: disc;
+}
