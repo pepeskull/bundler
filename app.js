@@ -36,6 +36,25 @@ document.addEventListener("DOMContentLoaded", () => {
     return Uint8Array.from(bytes.reverse());
   }
 
+  function parseSecretKey(secret) {
+    if (secret.startsWith("[")) {
+      const arr = JSON.parse(secret);
+      if (!Array.isArray(arr) || arr.length !== 64) {
+        throw new Error("Invalid JSON key");
+      }
+      return Uint8Array.from(arr);
+    }
+
+    const decoded = base58Decode(secret);
+    if (decoded.length === 32) {
+      return nacl.sign.keyPair.fromSeed(decoded).secretKey;
+    }
+    if (decoded.length === 64) {
+      return decoded;
+    }
+    throw new Error("Invalid secret key length");
+  }
+
   function base64ToBytes(b64) {
     const bin = atob(b64);
     const arr = new Uint8Array(bin.length);
@@ -89,6 +108,20 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
+     BACKEND BALANCE (RPC HIDDEN)
+  ===================================================== */
+  async function fetchSolBalance(pubkey) {
+    try {
+      const r = await fetch(`/api/sol-balance?pubkey=${pubkey}`);
+      const j = await r.json();
+      if (!r.ok) throw j;
+      return j.lamports / 1e9;
+    } catch {
+      return 0;
+    }
+  }
+
+  /* =====================================================
      JUPITER SWAP (REAL)
   ===================================================== */
   async function executeJupiterSwap(secretKeyBytes, solAmount) {
@@ -129,80 +162,86 @@ document.addEventListener("DOMContentLoaded", () => {
     const tx = solanaWeb3.VersionedTransaction.deserialize(
       base64ToBytes(swap.swapTransaction)
     );
-
     tx.sign([kp]);
 
-    // 🔒 SEND VIA BACKEND (RPC HIDDEN)
     const res = await fetch("/api/send-tx", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        rawTx: btoa(
-          String.fromCharCode(...tx.serialize())
-        )
+        rawTx: btoa(String.fromCharCode(...tx.serialize()))
       })
     }).then(r => r.json());
 
     if (!res.ok) throw new Error(res.error);
-
     return res.signature;
   }
 
   /* =====================================================
-     BUY BUNDLE
+     WALLET UI
   ===================================================== */
-  buyBtn.onclick = async () => {
-    const jobs = [];
+  function createWallet(index) {
+    const div = document.createElement("div");
+    div.className = "wallet";
+    div.innerHTML = `
+      <div class="wallet-header">
+        <span>Wallet ${index + 1}</span>
+        <button class="danger">✕</button>
+      </div>
 
-    document.querySelectorAll(".wallet").forEach(w => {
-      const sol = Number(w.querySelector("input[type='number']").value);
-      const secret = w.querySelector(".secret-input").value.trim();
-      if (!sol || !secret) return;
+      <div class="field">
+        <label>Private Key</label>
+        <input class="secret-input" />
+      </div>
 
-      let sk;
-      if (secret.startsWith("[")) {
-        sk = Uint8Array.from(JSON.parse(secret));
-      } else {
-        const d = base58Decode(secret);
-        sk = d.length === 32
-          ? nacl.sign.keyPair.fromSeed(d).secretKey
-          : d;
+      <div class="field amount-row">
+        <div>
+          <label class="sol-balance-label">Balance: -- SOL</label>
+          <input type="number" step="0.0001" min="0" />
+        </div>
+        <div>
+          <input type="text" readonly placeholder="--" />
+        </div>
+      </div>
+    `;
+
+    const pkInput = div.querySelector(".secret-input");
+    const solInput = div.querySelector("input[type='number']");
+    const outInput = div.querySelector("input[readonly]");
+    const balanceLabel = div.querySelector(".sol-balance-label");
+
+    // ✅ RESTORED BALANCE LOGIC
+    pkInput.addEventListener("blur", async () => {
+      try {
+        const secret = pkInput.value.trim();
+        if (!secret) return;
+
+        const sk = parseSecretKey(secret);
+        const kp = solanaWeb3.Keypair.fromSecretKey(sk);
+        const sol = await fetchSolBalance(kp.publicKey.toBase58());
+
+        balanceLabel.textContent = `Balance: ${sol.toFixed(4)} SOL`;
+      } catch {
+        balanceLabel.textContent = "Balance: Invalid key";
       }
-
-      jobs.push({ sol, sk });
     });
 
-    if (!jobs.length) return;
-
-    const results = await Promise.allSettled(
-      jobs.map(j => executeJupiterSwap(j.sk, j.sol))
-    );
-
-    results.forEach((r, i) => {
-      if (r.status === "fulfilled") {
-        console.log(`Wallet ${i + 1} TX:`, r.value);
-      } else {
-        console.error(`Wallet ${i + 1} FAILED:`, r.reason);
-      }
+    solInput.addEventListener("input", () => {
+      updateTotalCost();
+      debounceQuote(div, solInput, outInput);
     });
-  };
 
-  /* =====================================================
-     UI HELPERS (unchanged)
-  ===================================================== */
-  function debounceQuote(walletEl, solInput, outInput) {
-    if (quoteTimers.has(walletEl)) {
-      clearTimeout(quoteTimers.get(walletEl));
-    }
-    outInput.value = "…";
-    const t = setTimeout(async () => {
-      const q = await getQuote(Number(solInput.value));
-      outInput.value =
-        typeof q === "number" ? q.toFixed(4) : "--";
-    }, 400);
-    quoteTimers.set(walletEl, t);
+    div.querySelector(".danger").onclick = () => {
+      wallets.splice(index, 1);
+      renderWallets();
+      updateTotalCost();
+    };
+
+    return div;
   }
 
+  /* =====================================================
+     QUOTES + TOTAL
+  ===================================================== */
   async function getQuote(solAmount) {
     if (!tokenDecimals || solAmount <= 0) return null;
     const lamports = Math.floor(solAmount * 1e9);
@@ -215,6 +254,19 @@ document.addEventListener("DOMContentLoaded", () => {
     ).then(r => r.json());
     if (!q?.outAmount) return null;
     return Number(q.outAmount) / 10 ** tokenDecimals;
+  }
+
+  function debounceQuote(walletEl, solInput, outInput) {
+    if (quoteTimers.has(walletEl)) {
+      clearTimeout(quoteTimers.get(walletEl));
+    }
+    outInput.value = "…";
+    const t = setTimeout(async () => {
+      const q = await getQuote(Number(solInput.value));
+      outInput.value =
+        typeof q === "number" ? q.toFixed(4) : "--";
+    }, 400);
+    quoteTimers.set(walletEl, t);
   }
 
   function updateTotalCost() {
@@ -234,37 +286,45 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  /* =====================================================
+     BUY BUNDLE
+  ===================================================== */
+  buyBtn.onclick = async () => {
+    const jobs = [];
+
+    document.querySelectorAll(".wallet").forEach(w => {
+      const sol = Number(w.querySelector("input[type='number']").value);
+      const secret = w.querySelector(".secret-input").value.trim();
+      if (!sol || !secret) return;
+
+      try {
+        const sk = parseSecretKey(secret);
+        jobs.push({ sol, sk });
+      } catch {}
+    });
+
+    if (!jobs.length) return;
+
+    const results = await Promise.allSettled(
+      jobs.map(j => executeJupiterSwap(j.sk, j.sol))
+    );
+
+    results.forEach((r, i) => {
+      if (r.status === "fulfilled") {
+        console.log(`Wallet ${i + 1} TX:`, r.value);
+      } else {
+        console.error(`Wallet ${i + 1} FAILED:`, r.reason);
+      }
+    });
+  };
+
+  /* =====================================================
+     INIT
+  ===================================================== */
   function renderWallets() {
     walletList.innerHTML = "";
     wallets.forEach((_, i) => walletList.appendChild(createWallet(i)));
     walletCount.textContent = wallets.length;
-  }
-
-  function createWallet(index) {
-    const div = document.createElement("div");
-    div.className = "wallet";
-    div.innerHTML = `
-      <div class="wallet-header">
-        <span>Wallet ${index + 1}</span>
-        <button class="danger">✕</button>
-      </div>
-      <div class="field">
-        <label>Private Key</label>
-        <input class="secret-input" />
-      </div>
-      <div class="field amount-row">
-        <input type="number" step="0.0001" />
-        <input type="text" readonly />
-      </div>
-    `;
-    div.querySelector("input[type='number']").oninput = () => {
-      updateTotalCost();
-      debounceQuote(div,
-        div.querySelector("input[type='number']"),
-        div.querySelector("input[readonly]")
-      );
-    };
-    return div;
   }
 
   addWalletBtn.onclick = () => {
