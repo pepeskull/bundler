@@ -1,5 +1,16 @@
 document.addEventListener("DOMContentLoaded", () => {
-const nacl = window.nacl;
+
+  const nacl = window.nacl;
+
+  // optional safety check (recommended during dev)
+  if (!nacl) {
+    console.error("tweetnacl not loaded");
+    return;
+  }
+
+  // rest of your code...
+});
+
 
 /* =====================================================
    GLOBALS & CONNECTION
@@ -276,6 +287,7 @@ renderWallets();
 updateTotalCost();
 
 });
+
 
 
 
