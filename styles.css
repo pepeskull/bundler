@@ -317,3 +317,48 @@ svg.alert-icon {
   }
 }
 
+/* ================================
+   WALLET SCROLL PANEL
+================================ */
+
+#walletList {
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Subtle scrollbar */
+#walletList::-webkit-scrollbar {
+  width: 6px;
+}
+
+#walletList::-webkit-scrollbar-thumb {
+  background: #1a1a1a;
+  border-radius: 6px;
+}
+
+/* ================================
+   WALLET ACCORDION
+================================ */
+
+.wallet-header.collapsible {
+  cursor: pointer;
+}
+
+.wallet-body {
+  margin-top: 10px;
+}
+
+.wallet.collapsed .wallet-body {
+  display: none;
+}
+
+.wallet .chevron {
+  transition: transform 0.2s ease;
+}
+
+.wallet.collapsed .chevron {
+  transform: rotate(-90deg);
+}
+
+
