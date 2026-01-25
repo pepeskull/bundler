@@ -92,9 +92,16 @@ input[readonly] {
 }
 
 .wallet-header {
-  display:flex;
-  justify-content:space-between;
-  margin-bottom:8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wallet-summary {
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
 }
 
 .amount-row {
@@ -372,3 +379,4 @@ svg.alert-icon {
 .wallet.collapsed .chevron {
   transform: rotate(-90deg);
 }
+
