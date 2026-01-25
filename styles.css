@@ -79,7 +79,15 @@ input[readonly] {
   padding:12px;
   margin-bottom:12px;
   background-color: #040404;
-  border: 1px solid #0c0c0c;
+  border: 1px solid #8d8d8d6e;
+}
+
+.wallet.collapsed {
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    background-color: #040404;
+    border: 1px solid #0c0c0c;
 }
 
 .wallet-header {
@@ -363,5 +371,3 @@ svg.alert-icon {
 .wallet.collapsed .chevron {
   transform: rotate(-90deg);
 }
-
-
