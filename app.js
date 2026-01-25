@@ -7,14 +7,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const nacl = window.nacl;
 
   /* =====================================================
-     SOLSCAN ICON
+     ICONS
   ===================================================== */
   const SOLSCAN_ICON = `
   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"
     xmlns="http://www.w3.org/2000/svg">
     <path fill-rule="evenodd"
-      d="M14.516 6.743c-.41-.368-.443-1-.077-1.41a.99.99 0 0 1 1.405-.078l5.487 4.948A2.047 2.047 0 0 1 22 11.721a2.06 2.06 0 0 1-.662 1.51l-5.584 5.09a.99.99 0 0 1-1.404-.07 1.003 1.003 0 0 1 .068-1.412l5.578-5.082a.05.05 0 0 0 0-.072l-5.48-4.942ZM7.973 15.942v-.42a4.168 4.168 0 0 0-2.715 2.415 1.685 1.685 0 0 1-3.252-.684V15.88c0-3.77 2.526-7.039 5.967-7.573V7.57a1.957 1.957 0 0 1 3.146-1.654l5.08 4.248a2.1 2.1 0 0 1-.023 3.17l-5.08 4.25a1.957 1.957 0 0 1-3.123-1.394Z"
-      clip-rule="evenodd"/>
+      d="M14.516 6.743c-.41-.368-.443-1-.077-1.41a.99.99 0 0 1 1.405-.078l5.487 4.948A2.047 2.047 0 0 1 22 11.721a2.06 2.06 0 0 1-.662 1.51l-5.584 5.09a.99.99 0 0 1-1.404-.07 1.003 1.003 0 0 1 .068-1.412l5.578-5.082a.05.05 0 0 0 0-.072l-5.48-4.942Z"/>
+  </svg>`;
+
+  const TRASH_ICON = `
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+    xmlns="http://www.w3.org/2000/svg">
+    <path stroke="currentColor" stroke-linecap="round"
+      stroke-linejoin="round" stroke-width="2"
+      d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1
+      1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0
+      0 1-1 1H7a1 1 0 0 1-1-1V7Z"/>
   </svg>`;
 
   /* =====================================================
@@ -117,9 +126,11 @@ document.addEventListener("DOMContentLoaded", () => {
   async function getQuote(solAmount) {
     if (!tokenDecimals || solAmount <= 0) return null;
     const lamports = Math.floor(solAmount * 1e9);
+
     const q = await fetch(
       `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=50`
     ).then(r => r.json());
+
     if (!q?.outAmount) return null;
     return Number(q.outAmount) / 10 ** tokenDecimals;
   }
@@ -173,11 +184,16 @@ document.addEventListener("DOMContentLoaded", () => {
       div.innerHTML = `
         <div class="wallet-header collapsible">
           <span class="wallet-title">Wallet ${i + 1}</span>
+
           <span class="wallet-summary">
             ${w.balance !== "Balance: -- SOL" ? w.balance.replace("Balance: ", "") : ""}
             ${w.lastStatus || ""}
           </span>
-          <button class="danger delete-wallet">✕</button>
+
+          <button class="delete-wallet" title="Delete wallet">
+            ${TRASH_ICON}
+          </button>
+
           <span class="chevron">▾</span>
         </div>
 
@@ -199,19 +215,18 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
 
-      const header = div.querySelector(".wallet-header");
-      header.onclick = () => {
-        document.querySelectorAll(".wallet").forEach(el => {
-          if (el !== div) el.classList.add("collapsed");
-        });
-        div.classList.toggle("collapsed");
-      };
-
       div.querySelector(".delete-wallet").onclick = e => {
         e.stopPropagation();
         wallets.splice(i, 1);
         renderWallets();
         updateTotalCost();
+      };
+
+      div.querySelector(".wallet-header").onclick = () => {
+        document.querySelectorAll(".wallet").forEach(el => {
+          if (el !== div) el.classList.add("collapsed");
+        });
+        div.classList.toggle("collapsed");
       };
 
       const pkInput = div.querySelector(".secret-input");
@@ -224,6 +239,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const sk = parseSecretKey(pkInput.value.trim());
           const kp = solanaWeb3.Keypair.fromSecretKey(sk);
           const sol = await fetchSolBalance(kp.publicKey.toBase58());
+
           w.secret = pkInput.value;
           w.sk = sk;
           w.balance = `Balance: ${sol.toFixed(4)} SOL`;
@@ -323,6 +339,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function setTxStatus(i, cls, text, sig = null) {
     const el = document.getElementById(`tx-status-${i}`);
     if (!el) return;
+
     el.className = `tx-status ${cls}`;
 
     if (cls === "success" && sig) {
