@@ -161,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        rawTx: btoa(String.fromCharCode(...tx.serialize()))
+        rawTx: Buffer.from(tx.serialize()).toString("base64")
       })
     }).then(r => r.json());
 
@@ -378,4 +378,5 @@ document.addEventListener("DOMContentLoaded", () => {
     renderWallets();
   };
 });
+
 
