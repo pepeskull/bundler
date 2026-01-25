@@ -380,3 +380,11 @@ svg.alert-icon {
   transform: rotate(-90deg);
 }
 
+div.querySelector(".delete-wallet").onclick = (e) => {
+  e.stopPropagation(); // prevent accordion toggle
+  wallets.splice(i, 1);
+  renderWallets();
+  updateTotalCost();
+};
+
+
