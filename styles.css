@@ -103,7 +103,7 @@ input[readonly] {
     border-radius: 4px;
     font-size: 11px;
     white-space: nowrap;
-    color: #00e676;
+    color: #00e676 !important;
 }
 
 .amount-row {
@@ -404,4 +404,19 @@ svg.alert-icon {
 }
 
 
+.wallet-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
 
+.wallet-summary .chevron {
+  transition: transform 0.2s ease;
+}
+
+.wallet.collapsed .chevron {
+  transform: rotate(-90deg);
+}
