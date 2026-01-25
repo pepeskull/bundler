@@ -266,3 +266,53 @@ svg.alert-icon {
     color: #00e676;
     flex-shrink: 0;
 }
+
+/* ================================
+   TOKEN DETAILS COMPACT LAYOUT
+================================ */
+
+.token-grid {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.token-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Right side logo column */
+.token-logo {
+  display: flex;
+  flex-direction: column;
+  height: 128px;
+}
+
+.token-logo label {
+  margin-bottom: 4px;
+}
+
+/* Make logo box match left height */
+.token-logo .upload-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0px;
+}
+
+/* Keep logo visually balanced */
+#logoPreview {
+  max-height: 100px;
+}
+
+/* Mobile: stack naturally */
+@media (max-width: 600px) {
+  .token-grid {
+    /* grid-template-columns: 1fr; */
+  }
+}
