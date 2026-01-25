@@ -184,6 +184,9 @@ button {
 
 .tx-status {
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .tx-status.queued { color: #888; }
@@ -191,4 +194,14 @@ button {
 .tx-status.pending { color: #f6a623; }
 .tx-status.success { color: #3ddc84; }
 .tx-status.failed  { color: #ff5c5c; }
+
+.tx-link {
+  color: inherit;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+}
+
+.tx-link:hover {
+  opacity: 1;
+}
 
