@@ -98,19 +98,53 @@ button {
 }
 
 .primary {
-  background:var(--accent);
-  color:white;
+  background-color: #040404;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 100;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  border: 1px solid #0c0c0c;
+
 }
 
 .primary:disabled {
   opacity:.5;
-  cursor:not-allowed;
+  cursor:auto;
+  background-color: #040404;
+  color: #ccc;
+  font-size: 16px;
+  font-weight: 100;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  border: 1px solid #0c0c0c;
 }
 
 .secondary {
-  background:#1f2937;
-  color:var(--text);
   width: 100%;
+  background-color: #040404;
+  color: #ccc;
+  font-size: 16px;
+  font-weight: 100;
+  padding: 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  border: 1px solid #0c0c0c;
 }
 
 .danger {
@@ -125,6 +159,14 @@ button {
   font-size: 12px;
   background-color: rgb(6 14 9);
   border: 1px solid rgb(12 50 26);
+  display: flex;
+  align-items: center; 
+  gap: 8px; 
+  
+}
+
+#warning-text {
+  line-height: 1.4;
 }
 
 .footer {
@@ -215,4 +257,3 @@ svg.alert-icon {
     color: #00e676;
     flex-shrink: 0;
 }
-
