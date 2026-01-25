@@ -397,6 +397,7 @@ svg.alert-icon {
   color: #9ca3af;
   display: flex;
   align-items: center;
+  width: 14px;
 }
 
 .delete-wallet:hover {
