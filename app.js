@@ -208,25 +208,41 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     WALLET UI
+     WALLET UI (SCROLL + ACCORDION)
   ===================================================== */
   function renderWallets() {
     walletList.innerHTML = "";
+
     wallets.forEach((w, i) => {
       const div = document.createElement("div");
       div.className = "wallet";
+      if (i !== 0) div.classList.add("collapsed");
+
       div.innerHTML = `
-        <div class="wallet-header">
+        <div class="wallet-header collapsible">
           <span>Wallet ${i + 1}</span>
-          <button class="danger">✕</button>
+          <span class="chevron">▾</span>
         </div>
-        <label>Private Key</label>
-        <input class="secret-input" value="${w.secret}" />
-        <label class="sol-balance-label">${w.balance}</label>
-        <input type="number" step="0.0001" min="0" value="${w.sol}" />
-        <label class="quote">Quote</label>
-        <input type="text" readonly value="${w.quote}" />
+
+        <div class="wallet-body">
+          <label>Private Key</label>
+          <input class="secret-input" value="${w.secret}" />
+
+          <label class="sol-balance-label">${w.balance}</label>
+          <input type="number" step="0.0001" min="0" value="${w.sol}" />
+
+          <label class="quote">Quote</label>
+          <input type="text" readonly value="${w.quote}" />
+        </div>
       `;
+
+      const header = div.querySelector(".wallet-header");
+      header.onclick = () => {
+        document.querySelectorAll(".wallet").forEach(el => {
+          if (el !== div) el.classList.add("collapsed");
+        });
+        div.classList.toggle("collapsed");
+      };
 
       const pkInput = div.querySelector(".secret-input");
       const solInput = div.querySelector("input[type='number']");
@@ -238,6 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const sk = parseSecretKey(pkInput.value.trim());
           const kp = solanaWeb3.Keypair.fromSecretKey(sk);
           const sol = await fetchSolBalance(kp.publicKey.toBase58());
+
           w.secret = pkInput.value;
           w.sk = sk;
           w.balance = `Balance: ${sol.toFixed(4)} SOL`;
@@ -253,14 +270,9 @@ document.addEventListener("DOMContentLoaded", () => {
         debounceQuote(div, w, solInput, quoteInput);
       };
 
-      div.querySelector(".danger").onclick = () => {
-        wallets.splice(i, 1);
-        renderWallets();
-        updateTotalCost();
-      };
-
       walletList.appendChild(div);
     });
+
     walletCount.textContent = wallets.length;
   }
 
@@ -317,7 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =====================================================
      INIT
   ===================================================== */
-  wallets.push({
+  wallets.unshift({
     secret: "",
     sk: null,
     sol: "",
@@ -330,7 +342,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   addWalletBtn.onclick = () => {
     if (wallets.length >= 16) return;
-    wallets.push({
+    wallets.unshift({
       secret: "",
       sk: null,
       sol: "",
