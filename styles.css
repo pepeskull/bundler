@@ -142,3 +142,53 @@ button {
   -webkit-text-security: disc;
   text-security: disc;
 }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: #111;
+  border-radius: 14px;
+  padding: 20px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+
+.modal-content h3 {
+  margin: 0 0 12px;
+}
+
+.tx-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.tx-row:last-child {
+  border-bottom: none;
+}
+
+.tx-status {
+  font-weight: 600;
+}
+
+.tx-status.queued { color: #888; }
+.tx-status.sending { color: #4aa3ff; }
+.tx-status.pending { color: #f6a623; }
+.tx-status.success { color: #3ddc84; }
+.tx-status.failed  { color: #ff5c5c; }
+
