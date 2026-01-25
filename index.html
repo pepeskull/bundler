@@ -48,6 +48,15 @@
   </section>
 
   <footer class="footer">
+    <div class="controls">
+  <label>Execution Mode</label>
+  <select id="execMode">
+    <option value="fast">Same-block optimized</option>
+    <option value="stealth">Stealth mode</option>
+  </select>
+  <label>Encryption Passphrase</label>
+  <input id="passphrase" type="password" placeholder="Required to sign" />
+</div>
     <button id="buyBtn" class="primary" disabled>Buy Bundle</button>
     <p>Total Cost: <span id="totalCost">0.0000 SOL</span></p>
   </footer>
@@ -60,4 +69,5 @@
 
 </body>
 </html>
+
 
