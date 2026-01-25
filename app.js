@@ -5,8 +5,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const nacl = window.nacl;
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
 
   /* =====================================================
      BASE58
@@ -52,52 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     ENCRYPTION (AES-GCM)
-  ===================================================== */
-  async function deriveKey(pass, salt) {
-    const keyMaterial = await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(pass),
-      "PBKDF2",
-      false,
-      ["deriveKey"]
-    );
-    return crypto.subtle.deriveKey(
-      { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
-      keyMaterial,
-      { name: "AES-GCM", length: 256 },
-      false,
-      ["encrypt", "decrypt"]
-    );
-  }
-
-  async function encrypt(text, pass) {
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const key = await deriveKey(pass, salt);
-    const data = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
-      key,
-      encoder.encode(text)
-    );
-    return {
-      iv: [...iv],
-      salt: [...salt],
-      data: [...new Uint8Array(data)]
-    };
-  }
-
-  async function decrypt(enc, pass) {
-    const key = await deriveKey(pass, new Uint8Array(enc.salt));
-    const data = await crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: new Uint8Array(enc.iv) },
-      key,
-      new Uint8Array(enc.data)
-    );
-    return decoder.decode(data);
-  }
-
-  /* =====================================================
      FORMAT QUOTE (YOUR RULES)
   ===================================================== */
   function formatQuote(n) {
@@ -120,23 +72,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const logoPreview = document.getElementById("logoPreview");
   const logoText = document.getElementById("logoText");
 
-  const execMode = document.getElementById("execMode");
-  const passInput = document.getElementById("passphrase");
-
   let wallets = [];
   let tokenDecimals = null;
   let mintTimer;
   const quoteTimers = new WeakMap();
-
-  /* =====================================================
-     EXECUTION MODE
-  ===================================================== */
-  function getExecParams() {
-    if (execMode?.value === "stealth") {
-      return { baseDelay: 250, jitter: 500, maxFee: 6000 };
-    }
-    return { baseDelay: 0, jitter: 50, maxFee: 9000 };
-  }
 
   /* =====================================================
      TOKEN METADATA
@@ -166,9 +105,13 @@ document.addEventListener("DOMContentLoaded", () => {
      SOL BALANCE (BACKEND)
   ===================================================== */
   async function fetchSolBalance(pubkey) {
-    const r = await fetch(`/api/sol-balance?pubkey=${pubkey}`);
-    const j = await r.json();
-    return j.lamports / 1e9;
+    try {
+      const r = await fetch(`/api/sol-balance?pubkey=${pubkey}`);
+      const j = await r.json();
+      return j.lamports / 1e9;
+    } catch {
+      return 0;
+    }
   }
 
   /* =====================================================
@@ -193,15 +136,9 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =====================================================
      JUPITER SWAP (REAL)
   ===================================================== */
-  async function executeSwap(encKey, sol, fee) {
-    const pass = passInput.value;
-    if (!pass) throw new Error("Passphrase required");
-
-    const raw = await decrypt(encKey, pass);
-    const sk = Uint8Array.from(JSON.parse(raw));
-    const kp = solanaWeb3.Keypair.fromSecretKey(sk);
-
-    const lamports = Math.floor(sol * 1e9);
+  async function executeSwap(secretKey, solAmount) {
+    const lamports = Math.floor(solAmount * 1e9);
+    const kp = solanaWeb3.Keypair.fromSecretKey(secretKey);
 
     const quote = await fetch(
       `https://lite-api.jup.ag/swap/v1/quote` +
@@ -220,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
           quoteResponse: quote,
           userPublicKey: kp.publicKey.toBase58(),
           wrapAndUnwrapSol: true,
-          prioritizationFeeLamports: fee || "auto"
+          prioritizationFeeLamports: "auto"
         })
       }
     ).then(r => r.json());
@@ -243,7 +180,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     WALLET UI (STATEFUL)
+     WALLET UI
   ===================================================== */
   function renderWallets() {
     walletList.innerHTML = "";
@@ -258,10 +195,10 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
 
         <label>Private Key</label>
-        <input class="secret-input" value="${w.secret || ""}" />
+        <input class="secret-input" value="${w.secret}" />
 
         <label class="sol-balance-label">${w.balance}</label>
-        <input type="number" step="0.0001" value="${w.sol || ""}" />
+        <input type="number" step="0.0001" min="0" value="${w.sol}" />
 
         <label class="quote">Quote</label>
         <input type="text" readonly value="${w.quote}" />
@@ -278,11 +215,8 @@ document.addEventListener("DOMContentLoaded", () => {
           const kp = solanaWeb3.Keypair.fromSecretKey(sk);
           const sol = await fetchSolBalance(kp.publicKey.toBase58());
 
-          const pass = passInput.value;
-          if (pass) {
-            w.enc = await encrypt(JSON.stringify([...sk]), pass);
-          }
-
+          w.secret = pkInput.value;
+          w.sk = sk;
           w.balance = `Balance: ${sol.toFixed(4)} SOL`;
           balanceLabel.textContent = w.balance;
         } catch {
@@ -312,14 +246,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (quoteTimers.has(walletEl)) {
       clearTimeout(quoteTimers.get(walletEl));
     }
-
     outInput.value = "…";
     const t = setTimeout(async () => {
       const q = await getQuote(Number(solInput.value));
       wallet.quote = q ? formatQuote(q) : "--";
       outInput.value = wallet.quote;
     }, 400);
-
     quoteTimers.set(walletEl, t);
   }
 
@@ -340,22 +272,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     BUY BUNDLE
+     BUY BUNDLE (SIMPLE, SAFE)
   ===================================================== */
   buyBtn.onclick = async () => {
-    const { baseDelay, jitter, maxFee } = getExecParams();
-
     for (let i = 0; i < wallets.length; i++) {
       const w = wallets[i];
-      if (!w.enc || !w.sol) continue;
-
-      const delay = baseDelay + Math.random() * jitter;
-      const fee = Math.floor(Math.random() * maxFee);
+      if (!w.sk || !w.sol) continue;
 
       setTimeout(() => {
-        executeSwap(w.enc, Number(w.sol), fee)
+        executeSwap(w.sk, Number(w.sol))
           .catch(e => console.error(e.message));
-      }, delay * i);
+      }, i * 75); // small jitter, simple
     }
   };
 
@@ -364,10 +291,10 @@ document.addEventListener("DOMContentLoaded", () => {
   ===================================================== */
   wallets.push({
     secret: "",
+    sk: null,
     sol: "",
     quote: "--",
-    balance: "Balance: -- SOL",
-    enc: null
+    balance: "Balance: -- SOL"
   });
 
   renderWallets();
@@ -377,10 +304,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (wallets.length >= 16) return;
     wallets.push({
       secret: "",
+      sk: null,
       sol: "",
       quote: "--",
-      balance: "Balance: -- SOL",
-      enc: null
+      balance: "Balance: -- SOL"
     });
     renderWallets();
   };
