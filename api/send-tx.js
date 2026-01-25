@@ -1,38 +1,40 @@
+// /api/send-tx.js
 import { Connection } from "@solana/web3.js";
 
-const connection = new Connection(
-  process.env.SOLANA_RPC,
-  "confirmed"
-);
-
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
   try {
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
+
     const { rawTx } = req.body;
 
     if (!rawTx) {
       return res.status(400).json({ error: "Missing rawTx" });
     }
 
-    // rawTx is base64 from client
+    const rpc = process.env.SOLANA_RPC;
+    if (!rpc) {
+      throw new Error("SOLANA_RPC env missing");
+    }
+
+    const connection = new Connection(rpc, "confirmed");
+
+    // IMPORTANT: base64 decode
     const txBuffer = Buffer.from(rawTx, "base64");
 
-    const sig = await connection.sendRawTransaction(txBuffer, {
+    const signature = await connection.sendRawTransaction(txBuffer, {
       skipPreflight: false,
+      preflightCommitment: "confirmed",
       maxRetries: 3
     });
 
-    await connection.confirmTransaction(sig, "confirmed");
+    return res.json({ signature });
 
-    res.json({ ok: true, signature: sig });
   } catch (err) {
     console.error("SEND TX ERROR:", err);
-    res.status(500).json({
-      ok: false,
-      error: err.message || "Transaction failed"
+    return res.status(500).json({
+      error: err.message || "send-tx failed"
     });
   }
 }
