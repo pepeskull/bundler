@@ -7,6 +7,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const nacl = window.nacl;
 
   /* =====================================================
+     SOLSCAN ICON
+  ===================================================== */
+  const SOLSCAN_ICON = `
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"
+    xmlns="http://www.w3.org/2000/svg">
+    <path fill-rule="evenodd"
+      d="M14.516 6.743c-.41-.368-.443-1-.077-1.41a.99.99 0 0 1 1.405-.078l5.487 4.948.007.006A2.047 2.047 0 0 1 22 11.721a2.06 2.06 0 0 1-.662 1.51l-5.584 5.09a.99.99 0 0 1-1.404-.07 1.003 1.003 0 0 1 .068-1.412l5.578-5.082a.05.05 0 0 0 .015-.036.051.051 0 0 0-.015-.036l-5.48-4.942Zm-6.543 9.199v-.42a4.168 4.168 0 0 0-2.715 2.415c-.154.382-.44.695-.806.88a1.683 1.683 0 0 1-2.167-.571 1.705 1.705 0 0 1-.279-1.092V15.88c0-3.77 2.526-7.039 5.967-7.573V7.57a1.957 1.957 0 0 1 .993-1.838 1.931 1.931 0 0 1 2.153.184l5.08 4.248.011.01a2.098 2.098 0 0 1 .703 1.57 2.108 2.108 0 0 1-.726 1.59l-5.08 4.25a1.933 1.933 0 0 1-2.929-.614 1.957 1.957 0 0 1-.217-1.04Z"
+      clip-rule="evenodd"/>
+  </svg>`;
+
+  /* =====================================================
      BASE58
   ===================================================== */
   const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
@@ -29,16 +40,12 @@ document.addEventListener("DOMContentLoaded", () => {
         carry >>= 8;
       }
     }
-    for (let i = 0; i < str.length && str[i] === "1"; i++) {
-      bytes.push(0);
-    }
+    for (let i = 0; i < str.length && str[i] === "1"; i++) bytes.push(0);
     return Uint8Array.from(bytes.reverse());
   }
 
   function parseSecretKey(secret) {
-    if (secret.startsWith("[")) {
-      return Uint8Array.from(JSON.parse(secret));
-    }
+    if (secret.startsWith("[")) return Uint8Array.from(JSON.parse(secret));
     const d = base58Decode(secret);
     if (d.length === 32) return nacl.sign.keyPair.fromSeed(d).secretKey;
     if (d.length === 64) return d;
@@ -72,11 +79,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const logoPreview = document.getElementById("logoPreview");
   const logoText = document.getElementById("logoText");
 
-  // Modal
   const txModal = document.getElementById("txModal");
   const txList = document.getElementById("txList");
   const closeModal = document.getElementById("closeModal");
-
   closeModal.onclick = () => txModal.classList.add("hidden");
 
   let wallets = [];
@@ -93,9 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const mint = mintInput.value.trim();
       if (mint.length < 32) return;
 
-      const r = await fetch(
-        `/api/new-address?mode=tokenMetadata&mint=${mint}`
-      );
+      const r = await fetch(`/api/new-address?mode=tokenMetadata&mint=${mint}`);
       const j = await r.json();
       if (!j.ok) return;
 
@@ -109,16 +112,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* =====================================================
-     SOL BALANCE (BACKEND)
+     SOL BALANCE
   ===================================================== */
   async function fetchSolBalance(pubkey) {
-    try {
-      const r = await fetch(`/api/sol-balance?pubkey=${pubkey}`);
-      const j = await r.json();
-      return j.lamports / 1e9;
-    } catch {
-      return 0;
-    }
+    const r = await fetch(`/api/sol-balance?pubkey=${pubkey}`);
+    const j = await r.json();
+    return j.lamports / 1e9;
   }
 
   /* =====================================================
@@ -129,11 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const lamports = Math.floor(solAmount * 1e9);
 
     const q = await fetch(
-      `https://lite-api.jup.ag/swap/v1/quote` +
-      `?inputMint=So11111111111111111111111111111111111111112` +
-      `&outputMint=${mintInput.value}` +
-      `&amount=${lamports}` +
-      `&slippageBps=50`
+      `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=50`
     ).then(r => r.json());
 
     if (!q?.outAmount) return null;
@@ -141,33 +136,26 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     JUPITER SWAP (REAL)
+     JUPITER SWAP
   ===================================================== */
   async function executeSwap(secretKey, solAmount) {
     const lamports = Math.floor(solAmount * 1e9);
     const kp = solanaWeb3.Keypair.fromSecretKey(secretKey);
 
     const quote = await fetch(
-      `https://lite-api.jup.ag/swap/v1/quote` +
-      `?inputMint=So11111111111111111111111111111111111111112` +
-      `&outputMint=${mintInput.value}` +
-      `&amount=${lamports}` +
-      `&slippageBps=50`
+      `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=50`
     ).then(r => r.json());
 
-    const swap = await fetch(
-      "https://lite-api.jup.ag/swap/v1/swap",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          quoteResponse: quote,
-          userPublicKey: kp.publicKey.toBase58(),
-          wrapAndUnwrapSol: true,
-          prioritizationFeeLamports: "auto"
-        })
-      }
-    ).then(r => r.json());
+    const swap = await fetch("https://lite-api.jup.ag/swap/v1/swap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        quoteResponse: quote,
+        userPublicKey: kp.publicKey.toBase58(),
+        wrapAndUnwrapSol: true,
+        prioritizationFeeLamports: "auto"
+      })
+    }).then(r => r.json());
 
     const tx = solanaWeb3.VersionedTransaction.deserialize(
       base64ToBytes(swap.swapTransaction)
@@ -186,7 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     TX MODAL HELPERS
+     TX MODAL
   ===================================================== */
   function openTxModal(count) {
     txList.innerHTML = "";
@@ -195,20 +183,28 @@ document.addEventListener("DOMContentLoaded", () => {
       row.className = "tx-row";
       row.innerHTML = `
         <span>Wallet ${i + 1}</span>
-        <span class="tx-status queued" id="tx-status-${i}">
-          Queued
-        </span>
+        <span class="tx-status queued" id="tx-status-${i}">Queued</span>
       `;
       txList.appendChild(row);
     }
     txModal.classList.remove("hidden");
   }
 
-  function setTxStatus(i, cls, text) {
+  function setTxStatus(i, cls, text, sig = null) {
     const el = document.getElementById(`tx-status-${i}`);
     if (!el) return;
+
     el.className = `tx-status ${cls}`;
-    el.textContent = text;
+
+    if (cls === "success" && sig) {
+      el.innerHTML = `
+        <span>${text}</span>
+        <a class="tx-link" href="https://solscan.io/tx/${sig}" target="_blank">
+          ${SOLSCAN_ICON}
+        </a>`;
+    } else {
+      el.textContent = text;
+    }
   }
 
   /* =====================================================
@@ -216,7 +212,6 @@ document.addEventListener("DOMContentLoaded", () => {
   ===================================================== */
   function renderWallets() {
     walletList.innerHTML = "";
-
     wallets.forEach((w, i) => {
       const div = document.createElement("div");
       div.className = "wallet";
@@ -225,13 +220,10 @@ document.addEventListener("DOMContentLoaded", () => {
           <span>Wallet ${i + 1}</span>
           <button class="danger">✕</button>
         </div>
-
         <label>Private Key</label>
         <input class="secret-input" value="${w.secret}" />
-
         <label class="sol-balance-label">${w.balance}</label>
         <input type="number" step="0.0001" min="0" value="${w.sol}" />
-
         <label class="quote">Quote</label>
         <input type="text" readonly value="${w.quote}" />
       `;
@@ -246,7 +238,6 @@ document.addEventListener("DOMContentLoaded", () => {
           const sk = parseSecretKey(pkInput.value.trim());
           const kp = solanaWeb3.Keypair.fromSecretKey(sk);
           const sol = await fetchSolBalance(kp.publicKey.toBase58());
-
           w.secret = pkInput.value;
           w.sk = sk;
           w.balance = `Balance: ${sol.toFixed(4)} SOL`;
@@ -270,14 +261,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       walletList.appendChild(div);
     });
-
     walletCount.textContent = wallets.length;
   }
 
   function debounceQuote(walletEl, wallet, solInput, outInput) {
-    if (quoteTimers.has(walletEl)) {
-      clearTimeout(quoteTimers.get(walletEl));
-    }
+    if (quoteTimers.has(walletEl)) clearTimeout(quoteTimers.get(walletEl));
     outInput.value = "…";
     const t = setTimeout(async () => {
       const q = await getQuote(Number(solInput.value));
@@ -304,7 +292,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     BUY BUNDLE (WITH MODAL)
+     BUY BUNDLE
   ===================================================== */
   buyBtn.onclick = async () => {
     const active = wallets.filter(w => w.sk && w.sol);
@@ -312,26 +300,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     openTxModal(active.length);
 
-    for (let i = 0; i < active.length; i++) {
-      const w = active[i];
-
+    active.forEach((w, i) => {
       setTxStatus(i, "sending", "Sending");
-
       setTimeout(async () => {
         try {
           setTxStatus(i, "pending", "Pending");
-
           const sig = await executeSwap(w.sk, Number(w.sol));
-
-          setTxStatus(i, "success", "Transaction successful");
-          console.log("TX:", sig);
-          console.log("Solscan:", `https://solscan.io/tx/${sig}`);
-        } catch (e) {
-          console.error(e);
+          setTxStatus(i, "success", "Transaction successful", sig);
+        } catch {
           setTxStatus(i, "failed", "Failed");
         }
       }, i * 75);
-    }
+    });
   };
 
   /* =====================================================
