@@ -99,9 +99,11 @@ input[readonly] {
 }
 
 .wallet-summary {
-  font-size: 11px;
-  color: #9ca3af;
-  white-space: nowrap;
+    padding: 5px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    color: #00e676;
 }
 
 .amount-row {
@@ -400,6 +402,6 @@ svg.alert-icon {
   color: #ef4444;
 }
 
-
-
-
+span#totalCost {
+    color: #00e676;
+}
