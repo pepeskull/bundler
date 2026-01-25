@@ -187,13 +187,12 @@ document.addEventListener("DOMContentLoaded", () => {
               ${TRASH_ICON}
             </button>
           </span>
-
+        
           <span class="wallet-summary">
             ${w.balance !== "Balance: -- SOL" ? w.balance.replace("Balance: ", "") : ""}
             ${w.lastStatus || ""}
+            <span class="chevron">▾</span>
           </span>
-
-          <span class="chevron">▾</span>
         </div>
 
         <div class="wallet-body">
@@ -379,3 +378,4 @@ document.addEventListener("DOMContentLoaded", () => {
     renderWallets();
   };
 });
+
