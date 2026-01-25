@@ -12,7 +12,7 @@
 
 body {
   margin:0;
-  background:var(--bg);
+  background: #000;
   color:var(--text);
 }
 
@@ -23,11 +23,11 @@ body {
 }
 
 .card {
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:16px;
-  margin-bottom:16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  background-color: #040404;
+  border: 1px solid #0c0c0c;
+  border-radius: 16px;
 }
 
 h2 { margin:0 0 12px; }
@@ -36,30 +36,32 @@ h2 { margin:0 0 12px; }
 
 label {
   font-size:13px;
-  color:var(--muted);
+  color: #ccc;
   margin-bottom:4px;
   display:block;
 }
 
 input {
   width:100%;
-  background:#0f172a;
-  border:1px solid var(--border);
-  color:var(--text);
+  color: #ccc;
   padding:10px;
   border-radius:8px;
+  background-color: #040404;
+  border: 1px solid #0c0c0c;
 }
 
 input[readonly] {
-  background:#020617;
-  color:var(--muted);
+  color: #ccc;
+  background-color: #040404;
+  border: 1px solid #0c0c0c;
 }
 
 .upload-box {
-  border:1px dashed var(--border);
-  border-radius:10px;
+  border-radius: 8px;
   padding:16px;
   text-align:center;
+  background-color: #040404;
+  border: 1px solid #0c0c0c;
 }
 
 .upload-box img {
@@ -68,10 +70,11 @@ input[readonly] {
 }
 
 .wallet {
-  border:1px solid var(--border);
-  border-radius:10px;
+  border-radius: 8px;
   padding:12px;
   margin-bottom:12px;
+  background-color: #040404;
+  border: 1px solid #0c0c0c;
 }
 
 .wallet-header {
@@ -107,19 +110,21 @@ button {
 .secondary {
   background:#1f2937;
   color:var(--text);
+  width: 100%;
 }
 
 .danger {
-  background:var(--danger);
-  color:white;
+  color: #e40014;
+  background-color: #0d0405;
+  border: 1px solid #2f0508;
 }
 
 .warning {
-  background:#111827;
-  border-left:4px solid var(--accent);
   padding:12px;
   border-radius:8px;
-  font-size:14px;
+  font-size: 12px;
+  background-color: rgb(6 14 9);
+  border: 1px solid rgb(12 50 26);
 }
 
 .footer {
@@ -146,7 +151,7 @@ button {
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.65);
+  background: rgb(0 0 0 / 88%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -158,12 +163,13 @@ button {
 }
 
 .modal-content {
-  background: #111;
-  border-radius: 14px;
-  padding: 20px;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  padding: 24px;
+  margin-bottom: 24px;
+  background-color: #040404;
+  border: 1px solid #0c0c0c;
+  border-radius: 16px;
 }
 
 .modal-content h3 {
@@ -203,5 +209,10 @@ button {
 
 .tx-link:hover {
   opacity: 1;
+}
+
+svg.alert-icon {
+    color: #00e676;
+    flex-shrink: 0;
 }
 
