@@ -126,11 +126,9 @@ document.addEventListener("DOMContentLoaded", () => {
   async function getQuote(solAmount) {
     if (!tokenDecimals || solAmount <= 0) return null;
     const lamports = Math.floor(solAmount * 1e9);
-
     const q = await fetch(
       `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=50`
     ).then(r => r.json());
-
     if (!q?.outAmount) return null;
     return Number(q.outAmount) / 10 ** tokenDecimals;
   }
@@ -183,16 +181,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
       div.innerHTML = `
         <div class="wallet-header collapsible">
-          <span class="wallet-title">Wallet ${i + 1}</span>
+          <span class="wallet-title">
+            Wallet ${i + 1}
+            <button class="delete-wallet" title="Delete wallet">
+              ${TRASH_ICON}
+            </button>
+          </span>
 
           <span class="wallet-summary">
             ${w.balance !== "Balance: -- SOL" ? w.balance.replace("Balance: ", "") : ""}
             ${w.lastStatus || ""}
           </span>
-
-          <button class="delete-wallet" title="Delete wallet">
-            ${TRASH_ICON}
-          </button>
 
           <span class="chevron">▾</span>
         </div>
@@ -215,7 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
 
-      div.querySelector(".delete-wallet").onclick = e => {
+      div.querySelector(".delete-wallet").onclick = (e) => {
         e.stopPropagation();
         wallets.splice(i, 1);
         renderWallets();
@@ -239,7 +238,6 @@ document.addEventListener("DOMContentLoaded", () => {
           const sk = parseSecretKey(pkInput.value.trim());
           const kp = solanaWeb3.Keypair.fromSecretKey(sk);
           const sol = await fetchSolBalance(kp.publicKey.toBase58());
-
           w.secret = pkInput.value;
           w.sk = sk;
           w.balance = `Balance: ${sol.toFixed(4)} SOL`;
