@@ -12,26 +12,32 @@
 
   <!-- TOKEN INFO -->
   <section class="card">
-    <h2>Token Details</h2>
+  <h2>Token Details</h2>
 
-    <div class="field">
-      <label>Mint Address *</label>
-      <input id="mintAddress" placeholder="SPL Contract Address" />
+  <div class="token-grid">
+    <!-- LEFT -->
+    <div class="token-fields">
+      <div class="field">
+        <label>Mint Address *</label>
+        <input id="mintAddress" placeholder="SPL Contract Address">
+      </div>
+
+      <div class="field">
+        <label>Ticker</label>
+        <input id="tokenTicker" readonly>
+      </div>
     </div>
 
-    <div class="field">
-      <label>Ticker</label>
-      <input id="tokenTicker" readonly />
-    </div>
-
-    <div class="field">
+    <!-- RIGHT -->
+    <div class="token-logo">
       <label>Token Logo</label>
       <div class="upload-box">
-        <img id="logoPreview" />
+        <img id="logoPreview">
         <span id="logoText">Token logo will load automatically</span>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
   <!-- WALLETS -->
   <section class="card">
@@ -72,6 +78,7 @@
 
 </body>
 </html>
+
 
 
 
