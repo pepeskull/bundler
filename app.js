@@ -40,9 +40,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return Uint8Array.from(JSON.parse(secret));
     }
     const d = base58Decode(secret);
-    return d.length === 32
-      ? nacl.sign.keyPair.fromSeed(d).secretKey
-      : d;
+    if (d.length === 32) return nacl.sign.keyPair.fromSeed(d).secretKey;
+    if (d.length === 64) return d;
+    throw new Error("Invalid secret key");
   }
 
   function base64ToBytes(b64) {
@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     FORMAT QUOTE (YOUR RULES)
+     FORMAT QUOTE
   ===================================================== */
   function formatQuote(n) {
     if (n < 1000) return Math.floor(n).toString();
@@ -71,6 +71,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const tickerInput = document.getElementById("tokenTicker");
   const logoPreview = document.getElementById("logoPreview");
   const logoText = document.getElementById("logoText");
+
+  // Modal
+  const txModal = document.getElementById("txModal");
+  const txList = document.getElementById("txList");
+  const closeModal = document.getElementById("closeModal");
+
+  closeModal.onclick = () => txModal.classList.add("hidden");
 
   let wallets = [];
   let tokenDecimals = null;
@@ -175,8 +182,33 @@ document.addEventListener("DOMContentLoaded", () => {
       })
     }).then(r => r.json());
 
-    console.log("TX:", res.signature);
-    console.log("Solscan:", `https://solscan.io/tx/${res.signature}`);
+    return res.signature;
+  }
+
+  /* =====================================================
+     TX MODAL HELPERS
+  ===================================================== */
+  function openTxModal(count) {
+    txList.innerHTML = "";
+    for (let i = 0; i < count; i++) {
+      const row = document.createElement("div");
+      row.className = "tx-row";
+      row.innerHTML = `
+        <span>Wallet ${i + 1}</span>
+        <span class="tx-status queued" id="tx-status-${i}">
+          Queued
+        </span>
+      `;
+      txList.appendChild(row);
+    }
+    txModal.classList.remove("hidden");
+  }
+
+  function setTxStatus(i, cls, text) {
+    const el = document.getElementById(`tx-status-${i}`);
+    if (!el) return;
+    el.className = `tx-status ${cls}`;
+    el.textContent = text;
   }
 
   /* =====================================================
@@ -272,17 +304,33 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================================================
-     BUY BUNDLE (SIMPLE, SAFE)
+     BUY BUNDLE (WITH MODAL)
   ===================================================== */
   buyBtn.onclick = async () => {
-    for (let i = 0; i < wallets.length; i++) {
-      const w = wallets[i];
-      if (!w.sk || !w.sol) continue;
+    const active = wallets.filter(w => w.sk && w.sol);
+    if (!active.length) return;
 
-      setTimeout(() => {
-        executeSwap(w.sk, Number(w.sol))
-          .catch(e => console.error(e.message));
-      }, i * 75); // small jitter, simple
+    openTxModal(active.length);
+
+    for (let i = 0; i < active.length; i++) {
+      const w = active[i];
+
+      setTxStatus(i, "sending", "Sending");
+
+      setTimeout(async () => {
+        try {
+          setTxStatus(i, "pending", "Pending");
+
+          const sig = await executeSwap(w.sk, Number(w.sol));
+
+          setTxStatus(i, "success", "Transaction successful");
+          console.log("TX:", sig);
+          console.log("Solscan:", `https://solscan.io/tx/${sig}`);
+        } catch (e) {
+          console.error(e);
+          setTxStatus(i, "failed", "Failed");
+        }
+      }, i * 75);
     }
   };
 
