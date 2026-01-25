@@ -376,6 +376,7 @@ svg.alert-icon {
 
 .wallet .chevron {
   transition: transform 0.2s ease;
+  color: #ccc;
 }
 
 .wallet.collapsed .chevron {
@@ -402,6 +403,5 @@ svg.alert-icon {
   color: #ef4444;
 }
 
-span#totalCost {
-    color: #00e676;
-}
+
+
