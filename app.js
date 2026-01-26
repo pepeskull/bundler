@@ -6,14 +6,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const nacl = window.nacl;
 
-  /* =====================================================
-     ICONS
-  ===================================================== */
+  /* ================= ICONS ================= */
   const SOLSCAN_ICON = `
   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"
     xmlns="http://www.w3.org/2000/svg">
     <path fill-rule="evenodd"
-      d="M14.516 6.743c-.41-.368-.443-1-.077-1.41a.99.99 0 0 1 1.405-.078l5.487 4.948A2.047 2.047 0 0 1 22 11.721a2.06 2.06 0 0 1-.662 1.51l-5.584 5.09a.99.99 0 0 1-1.404-.07 1.003 1.003 0 0 1 .068-1.412l5.578-5.082a.05.05 0 0 0 0-.072l-5.48-4.942Z"/>
+      d="M14.516 6.743c-.41-.368-.443-1-.077-1.41a.99.99 0 0 1
+      1.405-.078l5.487 4.948A2.047 2.047 0 0 1 22
+      11.721a2.06 2.06 0 0 1-.662 1.51l-5.584
+      5.09a.99.99 0 0 1-1.404-.07 1.003
+      1.003 0 0 1 .068-1.412l5.578-5.082
+      a.05.05 0 0 0 0-.072l-5.48-4.942Z"/>
   </svg>`;
 
   const TRASH_ICON = `
@@ -21,14 +24,14 @@ document.addEventListener("DOMContentLoaded", () => {
     xmlns="http://www.w3.org/2000/svg">
     <path stroke="currentColor" stroke-linecap="round"
       stroke-linejoin="round" stroke-width="2"
-      d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1
-      1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0
-      0 1-1 1H7a1 1 0 0 1-1-1V7Z"/>
+      d="M5 7h14m-9 3v8m4-8v8M10
+      3h4a1 1 0 0 1 1 1v3H9V4
+      a1 1 0 0 1 1-1ZM6 7h12v13
+      a1 1 0 0 1-1 1H7a1 1 0
+      0 1-1-1V7Z"/>
   </svg>`;
 
-  /* =====================================================
-     BASE58
-  ===================================================== */
+  /* ================= BASE58 ================= */
   const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
   const MAP = {};
   for (let i = 0; i < ALPHABET.length; i++) MAP[ALPHABET[i]] = i;
@@ -61,19 +64,14 @@ document.addEventListener("DOMContentLoaded", () => {
     throw new Error("Invalid secret key");
   }
 
-  function base64ToBytes(b64) {
-    return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-  }
-
   function formatQuote(n) {
+    if (!n) return "--";
     if (n < 1000) return Math.floor(n).toString();
     if (n < 1_000_000) return Math.floor(n / 1000) + "k";
     return (n / 1_000_000).toFixed(2) + "M";
   }
 
-  /* =====================================================
-     DOM
-  ===================================================== */
+  /* ================= DOM ================= */
   const walletList = document.getElementById("walletList");
   const addWalletBtn = document.getElementById("addWalletBtn");
   const walletCount = document.getElementById("walletCount");
@@ -95,9 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let mintTimer;
   const quoteTimers = new WeakMap();
 
-  /* =====================================================
-     TOKEN METADATA
-  ===================================================== */
+  /* ================= TOKEN METADATA ================= */
   mintInput.addEventListener("input", () => {
     clearTimeout(mintTimer);
     mintTimer = setTimeout(async () => {
@@ -127,7 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!tokenDecimals || solAmount <= 0) return null;
     const lamports = Math.floor(solAmount * 1e9);
     const q = await fetch(
-      `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=50`
+      `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=300`
     ).then(r => r.json());
     if (!q?.outAmount) return null;
     return Number(q.outAmount) / 10 ** tokenDecimals;
@@ -138,7 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const kp = solanaWeb3.Keypair.fromSecretKey(secretKey);
 
     const quote = await fetch(
-      `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=50`
+      `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=300`
     ).then(r => r.json());
 
     const swap = await fetch("https://lite-api.jup.ag/swap/v1/swap", {
@@ -148,12 +144,13 @@ document.addEventListener("DOMContentLoaded", () => {
         quoteResponse: quote,
         userPublicKey: kp.publicKey.toBase58(),
         wrapAndUnwrapSol: true,
-        prioritizationFeeLamports: "auto"
+        prioritizationFeeLamports: "auto",
+        dynamicComputeUnitLimit: true
       })
     }).then(r => r.json());
 
     const tx = solanaWeb3.VersionedTransaction.deserialize(
-      base64ToBytes(swap.swapTransaction)
+      Uint8Array.from(atob(swap.swapTransaction), c => c.charCodeAt(0))
     );
     tx.sign([kp]);
 
@@ -168,9 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return res.signature;
   }
 
-  /* =====================================================
-     WALLET UI
-  ===================================================== */
+  /* ================= WALLET UI ================= */
   function renderWallets() {
     walletList.innerHTML = "";
 
@@ -180,16 +175,14 @@ document.addEventListener("DOMContentLoaded", () => {
       if (i !== 0) div.classList.add("collapsed");
 
       div.innerHTML = `
-        <div class="wallet-header collapsible">
+        <div class="wallet-header">
           <span class="wallet-title">
             Wallet ${i + 1}
-            <button class="delete-wallet" title="Delete wallet">
-              ${TRASH_ICON}
-            </button>
+            <button class="delete-wallet">${TRASH_ICON}</button>
           </span>
-        
+
           <span class="wallet-summary">
-            ${w.balance !== "Balance: -- SOL" ? w.balance.replace("Balance: ", "") : ""}
+            ${w.balance.replace("Balance: ", "") || ""}
             ${w.lastStatus || ""}
             <span class="chevron">▾</span>
           </span>
@@ -204,27 +197,26 @@ document.addEventListener("DOMContentLoaded", () => {
               <label class="sol-balance-label">${w.balance}</label>
               <input type="number" step="0.0001" min="0" value="${w.sol}" />
             </div>
-
             <div>
-              <label class="quote">Quote</label>
+              <label>Quote</label>
               <input type="text" readonly value="${w.quote}" />
             </div>
           </div>
         </div>
       `;
 
-      div.querySelector(".delete-wallet").onclick = (e) => {
-        e.stopPropagation();
-        wallets.splice(i, 1);
-        renderWallets();
-        updateTotalCost();
-      };
-
       div.querySelector(".wallet-header").onclick = () => {
         document.querySelectorAll(".wallet").forEach(el => {
           if (el !== div) el.classList.add("collapsed");
         });
         div.classList.toggle("collapsed");
+      };
+
+      div.querySelector(".delete-wallet").onclick = e => {
+        e.stopPropagation();
+        wallets.splice(i, 1);
+        renderWallets();
+        updateTotalCost();
       };
 
       const pkInput = div.querySelector(".secret-input");
@@ -264,7 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
     outInput.value = "…";
     const t = setTimeout(async () => {
       const q = await getQuote(Number(solInput.value));
-      wallet.quote = q ? formatQuote(q) : "--";
+      wallet.quote = formatQuote(q);
       outInput.value = wallet.quote;
     }, 400);
     quoteTimers.set(walletEl, t);
@@ -272,23 +264,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function refreshAllQuotes() {
     document.querySelectorAll(".wallet").forEach((el, i) => {
-      const w = wallets[i];
       const sol = el.querySelector("input[type='number']");
       const out = el.querySelector("input[readonly]");
-      if (Number(sol.value) > 0) debounceQuote(el, w, sol, out);
+      if (Number(sol.value) > 0) debounceQuote(el, wallets[i], sol, out);
     });
   }
 
   function updateTotalCost() {
-    let total = 0;
-    wallets.forEach(w => total += Number(w.sol) || 0);
+    const total = wallets.reduce((s, w) => s + (Number(w.sol) || 0), 0);
     totalCost.textContent = total.toFixed(4) + " SOL";
     buyBtn.disabled = total <= 0;
   }
 
-  /* =====================================================
-     BUY BUNDLE
-  ===================================================== */
+  /* ================= BUY ================= */
   buyBtn.onclick = async () => {
     const active = wallets.filter(w => w.sk && w.sol);
     if (!active.length) return;
@@ -296,63 +284,52 @@ document.addEventListener("DOMContentLoaded", () => {
     openTxModal(active.length);
 
     active.forEach((w, i) => {
-      setTxStatus(i, "sending", "Sending");
       w.lastStatus = "⏳";
       renderWallets();
 
       setTimeout(async () => {
         try {
-          setTxStatus(i, "pending", "Pending");
           const sig = await executeSwap(w.sk, Number(w.sol));
-          setTxStatus(i, "success", "Transaction successful", sig);
+          setTxStatus(i, "success", sig);
           w.lastStatus = "✅";
-          renderWallets();
         } catch {
-          setTxStatus(i, "failed", "Failed");
+          setTxStatus(i, "failed");
           w.lastStatus = "❌";
-          renderWallets();
         }
-      }, i * 75);
+        renderWallets();
+      }, i * 250);
     });
   };
 
-  /* =====================================================
-     TX MODAL
-  ===================================================== */
+  /* ================= MODAL ================= */
   function openTxModal(count) {
     txList.innerHTML = "";
     for (let i = 0; i < count; i++) {
-      const row = document.createElement("div");
-      row.className = "tx-row";
-      row.innerHTML = `
-        <span>Wallet ${i + 1}</span>
-        <span class="tx-status queued" id="tx-status-${i}">Queued</span>
-      `;
-      txList.appendChild(row);
+      txList.innerHTML += `
+        <div class="tx-row">
+          <span>Wallet ${i + 1}</span>
+          <span class="tx-status queued" id="tx-${i}">Queued</span>
+        </div>`;
     }
     txModal.classList.remove("hidden");
   }
 
-  function setTxStatus(i, cls, text, sig = null) {
-    const el = document.getElementById(`tx-status-${i}`);
-    if (!el) return;
-
-    el.className = `tx-status ${cls}`;
-
-    if (cls === "success" && sig) {
+  function setTxStatus(i, status, sig) {
+    const el = document.getElementById(`tx-${i}`);
+    if (status === "success") {
       el.innerHTML = `
-        <span>${text}</span>
-        <a class="tx-link" href="https://solscan.io/tx/${sig}" target="_blank">
+        Success
+        <a href="https://solscan.io/tx/${sig}" target="_blank">
           ${SOLSCAN_ICON}
         </a>`;
+      el.className = "tx-status success";
     } else {
-      el.textContent = text;
+      el.textContent = "Failed";
+      el.className = "tx-status failed";
     }
   }
 
-  /* =====================================================
-     INIT
-  ===================================================== */
+  /* ================= INIT ================= */
   wallets.unshift({
     secret: "",
     sk: null,
@@ -378,5 +355,3 @@ document.addEventListener("DOMContentLoaded", () => {
     renderWallets();
   };
 });
-
-
