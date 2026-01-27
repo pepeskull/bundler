@@ -7,10 +7,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const nacl = window.nacl;
 
   /* ================= ICONS ================= */
-  const SOLSCAN_ICON = `
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="#e5e7eb" xmlns="http://www.w3.org/2000/svg">
-    <path d="M18,10.82a1,1,0,0,0-1,1V19a1,1,0,0,1-1,1H5a1,1,0,0,1-1-1V8A1,1,0,0,1,5,7h7.18a1,1,0,0,0,0-2H5A3,3,0,0,0,2,8V19a3,3,0,0,0,3,3H16a3,3,0,0,0,3-3V11.82A1,1,0,0,0,18,10.82Zm3.92-8.2a1,1,0,0,0-.54-.54A1,1,0,0,0,21,2H15a1,1,0,0,0,0,2h3.59L8.29,14.29a1,1,0,0,0,0,1.42,1,1,0,0,0,1.42,0L20,5.41V9a1,1,0,0,0,2,0V3A1,1,0,0,0,21.92,2.62Z"/>
-  </svg>`;
+const SOLSCAN_ICON = `
+<svg width="18" height="18" viewBox="0 0 24 24" fill="#e5e7eb" xmlns="http://www.w3.org/2000/svg">
+  <path d="M18,10.82a1,1,0,0,0-1,1V19a1,1,0,0,1-1,1H5a1,1,0,0,1-1-1V8A1,1,0,0,1,5,7h7.18a1,1,0,0,0,0-2H5A3,3,0,0,0,2,8V19a3,3,0,0,0,3,3H16a3,3,0,0,0,3-3V11.82A1,1,0,0,0,18,10.82Zm3.92-8.2a1,1,0,0,0-.54-.54A1,1,0,0,0,21,2H15a1,1,0,0,0,0,2h3.59L8.29,14.29a1,1,0,0,0,0,1.42,1,1,0,0,0,1.42,0L20,5.41V9a1,1,0,0,0,2,0V3A1,1,0,0,0,21.92,2.62Z"/>
+</svg>
+`;
+
 
   const TRASH_ICON = `
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -59,8 +61,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function formatQuote(n) {
     if (!n) return "--";
-    if (n < 1_000) return Math.floor(n).toString();
-    if (n < 1_000_000) return Math.floor(n / 1_000) + "k";
+    if (n < 1000) return Math.floor(n).toString();
+    if (n < 1_000_000) return Math.floor(n / 1000) + "k";
     return (n / 1_000_000).toFixed(2) + "M";
   }
 
@@ -84,6 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let wallets = [];
   let tokenDecimals = null;
   let mintTimer;
+  const quoteTimers = new WeakMap();
 
   /* ================= TOKEN METADATA ================= */
   mintInput.addEventListener("input", () => {
@@ -111,58 +114,78 @@ document.addEventListener("DOMContentLoaded", () => {
     return j.lamports / 1e9;
   }
 
-  /* ================= OPTION A: SEQUENTIAL QUOTES ================= */
-  async function simulateSequentialQuotes(activeWallets) {
-    const results = [];
-
-    for (let i = 0; i < activeWallets.length; i++) {
-      const solAmount = Number(activeWallets[i].sol);
-      if (!solAmount || !tokenDecimals) {
-        results.push("--");
-        continue;
-      }
-
-      const lamports = Math.floor(solAmount * 1e9);
-
-      const quote = await fetch(
-        `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=300`
-      ).then(r => r.json());
-
-      if (!quote?.outAmount) {
-        results.push("--");
-        continue;
-      }
-
-      results.push(
-        Number(quote.outAmount) / 10 ** tokenDecimals
-      );
-
-      await new Promise(r => setTimeout(r, 300));
-    }
-
-    return results;
+  async function getQuote(solAmount) {
+    if (!tokenDecimals || solAmount <= 0) return null;
+    const lamports = Math.floor(solAmount * 1e9);
+    const q = await fetch(
+      `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=300`
+    ).then(r => r.json());
+    if (!q?.outAmount) return null;
+    return Number(q.outAmount) / 10 ** tokenDecimals;
   }
 
-  async function refreshAllQuotes() {
-    if (!tokenDecimals) return;
+  async function executeSwap(secretKey, solAmount) {
+  const lamports = Math.floor(solAmount * 1e9);
+  const kp = solanaWeb3.Keypair.fromSecretKey(secretKey);
 
-    const active = wallets.filter(w => Number(w.sol) > 0);
-    if (!active.length) return;
+  // 1️⃣ Get quote
+  const quote = await fetch(
+    `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=300`
+  ).then(r => r.json());
 
-    active.forEach(w => (w.quote = "…"));
-    renderWallets();
-
-    const simulated = await simulateSequentialQuotes(active);
-
-    let idx = 0;
-    wallets.forEach(w => {
-      if (Number(w.sol) > 0) {
-        w.quote = formatQuote(simulated[idx++]);
-      }
-    });
-
-    renderWallets();
+  if (!quote || quote.error) {
+    console.error("JUPITER QUOTE ERROR:", quote);
+    throw new Error(quote?.error || "Quote failed");
   }
+
+  // 2️⃣ Request swap transaction
+  const swap = await fetch("https://lite-api.jup.ag/swap/v1/swap", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      quoteResponse: quote,
+      userPublicKey: kp.publicKey.toBase58(),
+      wrapAndUnwrapSol: true,
+      prioritizationFeeLamports: "auto",
+      dynamicComputeUnitLimit: true
+    })
+  }).then(r => r.json());
+
+  // 🔴 THIS IS THE CRITICAL FIX
+  if (!swap || !swap.swapTransaction) {
+    console.error("JUPITER SWAP ERROR:", swap);
+    throw new Error(swap?.error || "Jupiter swap failed");
+  }
+
+  // 3️⃣ Deserialize transaction
+  const tx = solanaWeb3.VersionedTransaction.deserialize(
+    Uint8Array.from(
+      atob(swap.swapTransaction),
+      c => c.charCodeAt(0)
+    )
+  );
+
+  // 4️⃣ Sign transaction
+  tx.sign([kp]);
+
+  // 5️⃣ Send via backend (browser-safe base64)
+  const rawTxBase64 = btoa(
+    String.fromCharCode(...tx.serialize())
+  );
+
+  const res = await fetch("/api/send-tx", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rawTx: rawTxBase64 })
+  }).then(r => r.json());
+
+  if (!res.signature) {
+    console.error("SEND TX ERROR:", res);
+    throw new Error("RPC send failed");
+  }
+
+  return res.signature;
+}
 
   /* ================= WALLET UI ================= */
   function renderWallets() {
@@ -179,15 +202,18 @@ document.addEventListener("DOMContentLoaded", () => {
             Wallet ${i + 1}
             <button class="delete-wallet">${TRASH_ICON}</button>
           </span>
+
           <span class="wallet-summary">
-            ${w.balance.replace("Balance: ", "")}
+            ${w.balance.replace("Balance: ", "") || ""}
             ${w.lastStatus || ""}
             <span class="chevron">▾</span>
           </span>
         </div>
+
         <div class="wallet-body">
           <label>Private Key</label>
           <input class="secret-input" value="${w.secret}" />
+
           <div class="amount-row">
             <div>
               <label class="sol-balance-label">${w.balance}</label>
@@ -198,18 +224,26 @@ document.addEventListener("DOMContentLoaded", () => {
               <input type="text" readonly value="${w.quote}" />
             </div>
           </div>
-        </div>`;
+        </div>
+      `;
+
+      div.querySelector(".wallet-header").onclick = () => {
+        document.querySelectorAll(".wallet").forEach(el => {
+          if (el !== div) el.classList.add("collapsed");
+        });
+        div.classList.toggle("collapsed");
+      };
 
       div.querySelector(".delete-wallet").onclick = e => {
         e.stopPropagation();
         wallets.splice(i, 1);
         renderWallets();
         updateTotalCost();
-        refreshAllQuotes();
       };
 
       const pkInput = div.querySelector(".secret-input");
       const solInput = div.querySelector("input[type='number']");
+      const quoteInput = div.querySelector("input[readonly]");
       const balanceLabel = div.querySelector(".sol-balance-label");
 
       pkInput.onblur = async () => {
@@ -230,13 +264,32 @@ document.addEventListener("DOMContentLoaded", () => {
       solInput.oninput = () => {
         w.sol = solInput.value;
         updateTotalCost();
-        refreshAllQuotes();
+        debounceQuote(div, w, solInput, quoteInput);
       };
 
       walletList.appendChild(div);
     });
 
     walletCount.textContent = wallets.length;
+  }
+
+  function debounceQuote(walletEl, wallet, solInput, outInput) {
+    if (quoteTimers.has(walletEl)) clearTimeout(quoteTimers.get(walletEl));
+    outInput.value = "…";
+    const t = setTimeout(async () => {
+      const q = await getQuote(Number(solInput.value));
+      wallet.quote = formatQuote(q);
+      outInput.value = wallet.quote;
+    }, 400);
+    quoteTimers.set(walletEl, t);
+  }
+
+  function refreshAllQuotes() {
+    document.querySelectorAll(".wallet").forEach((el, i) => {
+      const sol = el.querySelector("input[type='number']");
+      const out = el.querySelector("input[readonly]");
+      if (Number(sol.value) > 0) debounceQuote(el, wallets[i], sol, out);
+    });
   }
 
   function updateTotalCost() {
@@ -270,6 +323,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  /* ================= MODAL ================= */
   function openTxModal(count) {
     txList.innerHTML = "";
     for (let i = 0; i < count; i++) {
@@ -282,20 +336,27 @@ document.addEventListener("DOMContentLoaded", () => {
     txModal.classList.remove("hidden");
   }
 
-  function setTxStatus(i, status, sig) {
-    const el = document.getElementById(`tx-${i}`);
-    if (status === "success") {
-      el.innerHTML = `
-        <span>Success</span>
-        <a href="https://solscan.io/tx/${sig}" target="_blank" rel="noopener">
-          ${SOLSCAN_ICON}
-        </a>`;
-      el.className = "tx-status success";
-    } else {
-      el.textContent = "Failed";
-      el.className = "tx-status failed";
-    }
+function setTxStatus(i, status, sig) {
+  const el = document.getElementById(`tx-${i}`);
+  if (status === "success") {
+    el.innerHTML = `
+      <span class="tx-success-text">Success</span>
+      <a
+        href="https://solscan.io/tx/${sig}"
+        target="_blank"
+        rel="noopener"
+        class="tx-link"
+        aria-label="View on Solscan"
+      >
+        ${SOLSCAN_ICON}
+      </a>
+    `;
+    el.className = "tx-status success";
+  } else {
+    el.textContent = "Failed";
+    el.className = "tx-status failed";
   }
+}
 
   /* ================= INIT ================= */
   wallets.unshift({
