@@ -7,17 +7,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const nacl = window.nacl;
 
   /* ================= ICONS ================= */
-  const SOLSCAN_ICON = `
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"
-    xmlns="http://www.w3.org/2000/svg">
-    <path fill-rule="evenodd"
-      d="M14.516 6.743c-.41-.368-.443-1-.077-1.41a.99.99 0 0 1
-      1.405-.078l5.487 4.948A2.047 2.047 0 0 1 22
-      11.721a2.06 2.06 0 0 1-.662 1.51l-5.584
-      5.09a.99.99 0 0 1-1.404-.07 1.003
-      1.003 0 0 1 .068-1.412l5.578-5.082
-      a.05.05 0 0 0 0-.072l-5.48-4.942Z"/>
-  </svg>`;
+const SOLSCAN_ICON = `
+<svg width="18" height="18" viewBox="0 0 24 24" fill="#e5e7eb" xmlns="http://www.w3.org/2000/svg">
+  <path d="M18,10.82a1,1,0,0,0-1,1V19a1,1,0,0,1-1,1H5a1,1,0,0,1-1-1V8A1,1,0,0,1,5,7h7.18a1,1,0,0,0,0-2H5A3,3,0,0,0,2,8V19a3,3,0,0,0,3,3H16a3,3,0,0,0,3-3V11.82A1,1,0,0,0,18,10.82Zm3.92-8.2a1,1,0,0,0-.54-.54A1,1,0,0,0,21,2H15a1,1,0,0,0,0,2h3.59L8.29,14.29a1,1,0,0,0,0,1.42,1,1,0,0,0,1.42,0L20,5.41V9a1,1,0,0,0,2,0V3A1,1,0,0,0,21.92,2.62Z"/>
+</svg>
+`;
+
 
   const TRASH_ICON = `
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -341,20 +336,27 @@ document.addEventListener("DOMContentLoaded", () => {
     txModal.classList.remove("hidden");
   }
 
-  function setTxStatus(i, status, sig) {
-    const el = document.getElementById(`tx-${i}`);
-    if (status === "success") {
-      el.innerHTML = `
-        Success
-        <a href="https://solscan.io/tx/${sig}" target="_blank">
-          ${SOLSCAN_ICON}
-        </a>`;
-      el.className = "tx-status success";
-    } else {
-      el.textContent = "Failed";
-      el.className = "tx-status failed";
-    }
+function setTxStatus(i, status, sig) {
+  const el = document.getElementById(`tx-${i}`);
+  if (status === "success") {
+    el.innerHTML = `
+      <span class="tx-success-text">Success</span>
+      <a
+        href="https://solscan.io/tx/${sig}"
+        target="_blank"
+        rel="noopener"
+        class="tx-link"
+        aria-label="View on Solscan"
+      >
+        ${SOLSCAN_ICON}
+      </a>
+    `;
+    el.className = "tx-status success";
+  } else {
+    el.textContent = "Failed";
+    el.className = "tx-status failed";
   }
+}
 
   /* ================= INIT ================= */
   wallets.unshift({
@@ -382,5 +384,6 @@ document.addEventListener("DOMContentLoaded", () => {
     renderWallets();
   };
 });
+
 
 
