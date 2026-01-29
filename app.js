@@ -74,7 +74,7 @@ const SOLSCAN_ICON = `
   const totalCost = document.getElementById("totalCost");
 
   const mintInput = document.getElementById("mintAddress");
-  const tickerInput = document.getElementById("tokenTicker");
+  const tickerBadge = document.getElementById("tickerBadge");
   const logoPreview = document.getElementById("logoPreview");
   const logoText = document.getElementById("logoText");
 
@@ -99,9 +99,16 @@ const SOLSCAN_ICON = `
       const j = await r.json();
       if (!j.ok) return;
 
-      tickerInput.value = j.symbol || "";
-      logoPreview.src = j.image || "";
-      logoText.style.display = j.image ? "none" : "block";
+      tickerBadge.textContent = j.symbol || "—";
+
+      if (j.image) {
+        logoPreview.src = j.image;
+        logoPreview.style.display = "block";
+        logoText.style.display = "none";
+      } else {
+        logoPreview.style.display = "none";
+        logoText.style.display = "block";
+      }
       tokenDecimals = j.decimals ?? null;
 
       refreshAllQuotes();
@@ -384,3 +391,4 @@ function setTxStatus(i, status, sig) {
     renderWallets();
   };
 });
+
