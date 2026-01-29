@@ -9,35 +9,30 @@
 <body>
 
 <div class="app">
-
   <!-- TOKEN INFO -->
+  <div class="token-row">
+
+  <!-- MINT CARD -->
   <section class="card">
-  <h2>Token Details</h2>
+    <h2>Token Address</h2>
 
-  <div class="token-grid">
-    <!-- LEFT -->
-    <div class="token-fields">
-      <div class="field">
-        <label>Mint Address *</label>
-        <input id="mintAddress" placeholder="SPL Contract Address">
-      </div>
+    <label>Mint Address *</label>
 
-      <div class="field">
-        <label>Ticker</label>
-        <input id="tokenTicker" readonly>
-      </div>
+    <div class="mint-input">
+      <input id="mintAddress" placeholder="SPL Contract Address">
+      <div id="tickerBadge">Ticker</div>
     </div>
+  </section>
 
-    <!-- RIGHT -->
-    <div class="token-logo">
-      <label>Token Logo</label>
-      <div class="upload-box">
-        <img id="logoPreview">
-        <span id="logoText">Token logo will load automatically</span>
-      </div>
+  <!-- LOGO CARD -->
+  <section class="card logo-card">
+    <h2>Token Logo</h2>
+
+    <div class="logo-box">
+      <img id="logoPreview" src="https://image.solanatracker.io/proxy?url=https%3A%2F%2Fipfs-forward.solanatracker.io%2Fipfs%2Fbafkreie342pkmouz27py4bgeadfyr5pztaevsrr2dqu57ij5a4eqia3g4i">
     </div>
-  </div>
-</section>
+  </section>
+</div>
 
   <!-- WALLETS -->
   <section class="card">
@@ -78,6 +73,7 @@
 
 </body>
 </html>
+
 
 
 
