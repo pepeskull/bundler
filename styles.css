@@ -31,7 +31,7 @@ body {
   border-radius: 16px;
 }
 
-h2 {margin:0 0 12px;font-family: monospace;font-size: 16px;}
+h2 {margin:0 0 12px;font-family: monospace;font-size: 14px;}
 
 .field {margin-bottom: -14px;}
 
@@ -345,8 +345,10 @@ svg.alert-icon {
 
 /* Keep logo visually balanced */
 #logoPreview {
-  max-height: 100px;
-  border-radius: 8px;
+  height: 100px;
+  width: 100px;
+  border: 1px solid #0c0c0c;
+  border-radius: 50%;
 }
 
 /* Mobile: stack naturally */
@@ -487,7 +489,7 @@ svg.alert-icon {
   flex: 1;
   border-radius: 10px;
   background: #040404;
-  border: 1px solid #0c0c0c;
+  border: 0px solid #0c0c0c;
   display: flex;
   align-items: center;
   justify-content: center;
