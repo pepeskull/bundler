@@ -44,16 +44,19 @@ label {
 }
 
 input {
-  width:100%;
-  color: #ccc;
-  padding:10px;
-  border-radius:8px;
-  background-color: #040404;
-  border: 1px solid #0c0c0c;
-  font-family: monospace;
-  font-size: 11px;
-  margin-bottom: 20px;
-  outline: none;
+  width: 100%;
+    background-color: #040404;
+    border: 1px solid #0c0c0c;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    transition: border-color 0.2s;
+    margin: 10px 0px;
+    color: #ccc;
+    font-family: monospace;
+    font-size: 14px;
+    outline: none;
 }
 
 input[readonly] {
@@ -420,4 +423,76 @@ svg.alert-icon {
 
 .wallet.collapsed .chevron {
   transform: rotate(-90deg);
+}
+
+/* ================================
+   TOKEN TOP-LEVEL CARDS
+================================ */
+
+.token-row {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 16px;
+  align-items: stretch;
+}
+
+/* Mint input with ticker */
+.mint-input {
+  position: relative;
+}
+
+.mint-input input {
+  padding-right: 80px;
+}
+
+#tickerBadge {
+  position: absolute;
+  right: 0px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 14px 5px;
+  border-radius: 8px;
+  font-size: 14px;
+  /* background: #0c0c0c; */
+  border: 1px solid #0c0c0c;
+  color: #00e676;
+  font-family: monospace;
+  pointer-events: none;
+  width: 100px;
+  text-align: center;
+}
+
+/* Logo card internals */
+.logo-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-box {
+  flex: 1;
+  border-radius: 10px;
+  background: #040404;
+  border: 1px solid #0c0c0c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.logo-box img {
+  max-width: 96px;
+  max-height: 96px;
+  border-radius: 8px;
+}
+
+.logo-box span {
+  font-size: 11px;
+  color: #666;
+}
+
+/* Mobile stack */
+@media (max-width: 600px) {
+  .token-row {
+    grid-template-columns: 1fr;
+  }
 }
