@@ -236,7 +236,9 @@ async function fetchSolBalance(pubkey) {
     };
   }
 
-  function renderStack() {
+  /* ================= STACK + DRAG ================= */
+
+function renderStack() {
   walletStackEl.innerHTML = "";
 
   wallets.forEach((w, i) => {
@@ -244,13 +246,13 @@ async function fetchSolBalance(pubkey) {
 
     const div = document.createElement("div");
     div.className = "stack-item stack-wallet";
-    div.style.animation = "slideInRight 0.2s ease";
+    div.dataset.index = i;
 
     div.innerHTML = `
       <div class="stack-wallet-content">
         <div class="stack-wallet-header">
+          <span class="drag-handle" title="Drag to reorder">☰</span>
           <strong>Wallet ${i + 1}</strong>
-
           <button class="delete-wallet" title="Delete wallet">
             ${TRASH_ICON}
           </button>
@@ -267,10 +269,10 @@ async function fetchSolBalance(pubkey) {
       </div>
     `;
 
-    // Activate wallet on click
+    // Activate wallet
     div.onclick = () => activateWallet(i);
 
-    // Delete button
+    // Delete wallet
     div.querySelector(".delete-wallet").onclick = e => {
       e.stopPropagation();
       deleteWallet(i);
@@ -279,14 +281,66 @@ async function fetchSolBalance(pubkey) {
     walletStackEl.appendChild(div);
   });
 
-  // Empty placeholders (up to 16)
-  const empty = MAX_WALLETS - wallets.length;
-  for (let i = 0; i < empty; i++) {
-    const div = document.createElement("div");
-    div.className = "stack-item stack-empty";
-    div.textContent = "Empty Slot";
-    walletStackEl.appendChild(div);
+  // Empty slots
+  const emptySlots = MAX_WALLETS - wallets.length;
+  for (let i = 0; i < emptySlots; i++) {
+    const empty = document.createElement("div");
+    empty.className = "stack-item stack-empty";
+    empty.textContent = "Empty Slot";
+    walletStackEl.appendChild(empty);
   }
+
+  initStackDrag();
+}
+
+/* ================= DRAG LOGIC ================= */
+
+let stackSortable = null;
+
+function initStackDrag() {
+  if (stackSortable) {
+    stackSortable.destroy();
+  }
+
+  stackSortable = new Sortable(walletStackEl, {
+    animation: 150,
+    handle: ".drag-handle",
+    draggable: ".stack-wallet",
+    filter: ".stack-empty",
+
+    onMove: evt => {
+      if (evt.related.classList.contains("stack-empty")) {
+        return false;
+      }
+    },
+
+    onEnd: () => {
+      syncWalletOrderFromStack();
+    }
+  });
+}
+
+function syncWalletOrderFromStack() {
+  const newOrder = [];
+
+  walletStackEl.querySelectorAll(".stack-wallet").forEach(node => {
+    const idx = Number(node.dataset.index);
+    newOrder.push(wallets[idx]);
+  });
+
+  const active = wallets[activeWalletIndex];
+
+  wallets = [...newOrder, active];
+  activeWalletIndex = wallets.length - 1;
+
+  render();
+}
+
+/* ================= ACTIONS ================= */
+
+function activateWallet(index) {
+  activeWalletIndex = index;
+  render();
 }
 
 function deleteWallet(index) {
@@ -301,96 +355,35 @@ function deleteWallet(index) {
   updateTotalCost();
 }
 
-  /* ================= ACTIONS ================= */
-
-  function activateWallet(i) {
-    activeWalletIndex = i;
-    render();
-  }
-
-  function deleteWallet(i) {
-    wallets.splice(i, 1);
-    if (activeWalletIndex >= wallets.length) {
-      activeWalletIndex = wallets.length - 1;
-    }
-    render();
-    updateTotalCost();
-  }
-
-  function updateTotalCost() {
-    const total = wallets.reduce(
-      (s, w) => s + (Number(w.sol) || 0),
-      0
-    );
-    totalCost.textContent = total.toFixed(4) + " SOL";
-    buyBtn.disabled = total <= 0;
-  }
-
-  addWalletBtn.onclick = () => {
-    if (wallets.length >= MAX_WALLETS) return;
-    wallets.push({
-      secret: "",
-      sk: null,
-      sol: "",
-      quote: "",
-      balance: "Balance: "
-    });
-    activeWalletIndex = wallets.length - 1;
-    render();
-  };
-
-  /* ================= INIT ================= */
-
-  wallets.push({
-    secret: "",
-    sk: null,
-    sol: "",
-    quote: "",
-    balance: "Balance: "
-  });
-
-  render();
-  updateTotalCost();
-});
+/* ================= BUY ================= */
 
 buyBtn.onclick = async () => {
-  const active = wallets.filter(
-    w => w.sk && Number(w.sol) > 0
-  );
+  const stackWallets = wallets.slice(0, wallets.length - 1);
+  const activeWallet = wallets[wallets.length - 1];
 
-  if (!active.length) {
-    console.warn("No valid wallets to execute");
-    return;
-  }
+  const executionList = [...stackWallets, activeWallet]
+    .filter(w => w.sk && Number(w.sol) > 0);
 
-  // Optional: open modal if you already have it wired
+  if (!executionList.length) return;
+
   if (typeof openTxModal === "function") {
-    openTxModal(active.length);
+    openTxModal(executionList.length);
   }
 
-  for (let i = 0; i < active.length; i++) {
-    const w = active[i];
-
+  for (let i = 0; i < executionList.length; i++) {
     try {
       const sig = await executeSwap(
-        w.sk,
-        Number(w.sol)
+        executionList[i].sk,
+        Number(executionList[i].sol)
       );
-
-      console.log(`Wallet ${i + 1} success:`, sig);
 
       if (typeof setTxStatus === "function") {
         setTxStatus(i, "success", sig);
       }
-
-    } catch (err) {
-      console.error(`Wallet ${i + 1} failed`, err);
-
+    } catch {
       if (typeof setTxStatus === "function") {
         setTxStatus(i, "failed");
       }
     }
   }
 };
-
-
