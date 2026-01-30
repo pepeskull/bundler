@@ -388,7 +388,10 @@ buyBtn.onclick = async () => {
   }
 };
 
-    /* ================= INIT ================= */
+/* ================= ADD WALLET ================= */
+
+addWalletBtn.onclick = () => {
+  if (wallets.length >= MAX_WALLETS) return;
 
   wallets.push({
     secret: "",
@@ -398,7 +401,23 @@ buyBtn.onclick = async () => {
     balance: "Balance: "
   });
 
+  activeWalletIndex = wallets.length - 1;
   render();
-  updateTotalCost();
+};
+
+/* ================= INIT ================= */
+
+wallets.push({
+  secret: "",
+  sk: null,
+  sol: "",
+  quote: "",
+  balance: "Balance: "
 });
+
+render();
+updateTotalCost();
+});
+
+
 
