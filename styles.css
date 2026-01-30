@@ -461,20 +461,20 @@ svg.alert-icon {
 }
 
 #tickerBadge {
-  position: absolute;
-  right: 0px;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 14px 5px;
-  border-radius: 8px;
-  font-size: 14px;
-  /* background: #0c0c0c; */
-  border: 1px solid #0c0c0c;
-  color: #00e676;
-  font-family: monospace;
-  pointer-events: none;
-  width: 100px;
-  text-align: center;
+position: absolute;
+right: 0px;
+top: 50%;
+transform: translateY(-50%);
+padding: 15px 5px;
+border-radius: 0px 8px 8px 0px;
+font-size: 12px;
+background: #0c0c0c;
+border: 1px solid #0c0c0c;
+color: #ccc;
+font-family: monospace;
+pointer-events: none;
+width: 100px;
+text-align: center;
 }
 
 /* Logo card internals */
@@ -511,3 +511,4 @@ svg.alert-icon {
     grid-template-columns: 1fr;
   }
 }
+
