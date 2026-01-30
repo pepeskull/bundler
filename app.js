@@ -394,30 +394,25 @@ function renderStack() {
     div.dataset.index = i;
 
     div.innerHTML = `
-    <div class="stack-wallet-content">
-  
-      <div class="stack-wallet-title">
-        <strong>Wallet ${i + 1}</strong>
-      </div>
-  
-      <div class="stack-wallet-meta">
-        <span class="drag-handle" title="Drag to reorder">☰</span>
-        <span class="stack-wallet-amount">
+      <div class="stack-wallet-content">
+        <div class="stack-wallet-header">
+          <span class="drag-handle" title="Drag to reorder">☰</span>
+          <strong>Wallet ${i + 1}</strong>
+          <button class="delete-wallet" title="Delete wallet">
+            ${TRASH_ICON}
+          </button>
+        </div>
+
+        <div class="stack-wallet-meta">
           ${w.sol ? `${Number(w.sol).toFixed(4)} SOL` : "--"}
           ${w.quote ? `→ ${w.quote}` : ""}
-        </span>
+        </div>
+
+        <div class="stack-wallet-balance">
+          ${w.balance || ""}
+        </div>
       </div>
-  
-      <div class="stack-wallet-balance">
-        ${w.balance || ""}
-      </div>
-  
-      <button class="delete-wallet" title="Delete wallet">
-        ${TRASH_ICON}
-      </button>
-  
-    </div>
-  `;
+    `;
 
     // Activate wallet
     div.onclick = () => activateWallet(i);
@@ -578,4 +573,3 @@ wallets.push({
 render();
 updateTotalCost();
 });
-
