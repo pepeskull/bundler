@@ -1,11 +1,11 @@
-# Solana Bundle Buy (Wallet Bundler)
+# Solana Wallet Bundler
 
 A web-based tool that lets you **execute multiple Solana swaps in a controlled bundle**, using multiple wallets, with **drag‑and‑drop execution order**, live quotes via **Jupiter**, and a **clear execution modal**.
 
 This project is designed for power users who want to:
 
 * Buy the same token from **multiple wallets**
-* Control **execution order** (stack order → active wallet last)
+* Control **execution order** (stack order)
 * Avoid RPC overload with **staggered execution**
 * See **real transaction status** instead of silent failures
 
@@ -14,7 +14,7 @@ This project is designed for power users who want to:
 ## ✨ Features
 
 * 🔐 **Client‑side key handling** (keys are never stored or sent elsewhere)
-* 🧩 **Active wallet + stack wallets UI**
+* 🧩 **Active wallet + stack wallets**
 * ☰ **Drag‑and‑drop stack ordering** (handle-only dragging)
 * 📊 **Live SOL balance + Jupiter quotes**
 * 🧮 **Automatic total SOL calculation**
