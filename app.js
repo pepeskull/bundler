@@ -175,6 +175,70 @@ function updateTotalCost() {
     });
   }
 
+  /* ================= EXECUTE SWAP ================= */
+
+async function executeSwap(secretKey, solAmount) {
+  const lamports = Math.floor(solAmount * 1e9);
+  const kp = solanaWeb3.Keypair.fromSecretKey(secretKey);
+
+  // 1️⃣ Get quote
+  const quote = await fetch(
+    `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=300`
+  ).then(r => r.json());
+
+  if (!quote || quote.error) {
+    console.error("JUPITER QUOTE ERROR:", quote);
+    throw new Error(quote?.error || "Quote failed");
+  }
+
+  // 2️⃣ Request swap transaction
+  const swap = await fetch("https://lite-api.jup.ag/swap/v1/swap", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      quoteResponse: quote,
+      userPublicKey: kp.publicKey.toBase58(),
+      wrapAndUnwrapSol: true,
+      prioritizationFeeLamports: "auto",
+      dynamicComputeUnitLimit: true
+    })
+  }).then(r => r.json());
+
+  if (!swap || !swap.swapTransaction) {
+    console.error("JUPITER SWAP ERROR:", swap);
+    throw new Error(swap?.error || "Jupiter swap failed");
+  }
+
+  // 3️⃣ Deserialize tx
+  const tx = solanaWeb3.VersionedTransaction.deserialize(
+    Uint8Array.from(
+      atob(swap.swapTransaction),
+      c => c.charCodeAt(0)
+    )
+  );
+
+  // 4️⃣ Sign
+  tx.sign([kp]);
+
+  // 5️⃣ Send via backend
+  const rawTxBase64 = btoa(
+    String.fromCharCode(...tx.serialize())
+  );
+
+  const res = await fetch("/api/send-tx", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rawTx: rawTxBase64 })
+  }).then(r => r.json());
+
+  if (!res.signature) {
+    console.error("SEND TX ERROR:", res);
+    throw new Error("RPC send failed");
+  }
+
+  return res.signature;
+}
+
   /* ================= SOL BALANCE ================= */
 
 async function fetchSolBalance(pubkey) {
@@ -446,6 +510,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
