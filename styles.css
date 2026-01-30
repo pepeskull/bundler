@@ -599,3 +599,20 @@ text-align: center;
     grid-template-columns: 1fr;
   }
 }
+
+/* ================================
+   CUSTOM SCROLLBAR (STACK)
+================================ */
+
+.wallet-stack-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.wallet-stack-wrapper::-webkit-scrollbar-thumb {
+  background: #1a1a1a;
+  border-radius: 6px;
+}
+
+.wallet-stack-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
