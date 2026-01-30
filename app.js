@@ -144,31 +144,28 @@ function openTxModal(count) {
   txModal.classList.remove("hidden");
 }
 
-function setTxStatus(i, status, sig) {
+function setTxStatus(i, status, sig, message) {
   const el = document.getElementById(`tx-${i}`);
   if (!el) return;
 
-  if (status === "success") {
-    el.innerHTML = `
-      <span>Success</span>
-      <a
-        href="https://solscan.io/tx/${sig}"
-        target="_blank"
-        rel="noopener"
-        class="tx-link"
-      >
-        ${SOLSCAN_ICON}
-      </a>
-    `;
-    el.className = "tx-status success";
-  } 
-  else if (status === "pending") {
+  if (status === "failed") {
+    el.textContent = message || "Failed";
+    el.className = "tx-status failed";
+    return;
+  }
+
+  if (status === "pending") {
     el.textContent = "Pending";
     el.className = "tx-status pending";
-  } 
-  else {
-    el.textContent = "Failed";
-    el.className = "tx-status failed";
+    return;
+  }
+
+  if (status === "success") {
+    el.innerHTML = `
+      Success
+      <a href="https://solscan.io/tx/${sig}" target="_blank">↗</a>
+    `;
+    el.className = "tx-status success";
   }
 }
 
@@ -505,6 +502,8 @@ function deleteWallet(index) {
 
 /* ================= BUY ================= */
 
+const MIN_SOL_BUFFER = 0.06; // required for ATA + fees + safety
+
 buyBtn.onclick = async () => {
   const stackWallets = wallets.slice(0, wallets.length - 1);
   const activeWallet = wallets[wallets.length - 1];
@@ -512,7 +511,7 @@ buyBtn.onclick = async () => {
   const executionList = [...stackWallets, activeWallet]
     .filter(w => w.sk && Number(w.sol) > 0);
 
-  // Always open modal
+  // Always open modal (even if nothing executes)
   if (typeof openTxModal === "function") {
     openTxModal(executionList.length);
   }
@@ -520,12 +519,23 @@ buyBtn.onclick = async () => {
   if (!executionList.length) return;
 
   executionList.forEach((w, i) => {
-    // Optional: mark as queued/pending visually
+    // Deterministic failure: insufficient SOL
+    if (
+      typeof w.balanceSol === "number" &&
+      w.balanceSol < Number(w.sol) + MIN_SOL_BUFFER
+    ) {
+      if (typeof setTxStatus === "function") {
+        setTxStatus(i, "failed", null, "Insufficient SOL");
+      }
+      return;
+    }
+
+    // OK to attempt → mark pending
     if (typeof setTxStatus === "function") {
       setTxStatus(i, "pending");
     }
 
-    // STAGGERED execution (CRITICAL)
+    // STAGGERED execution
     setTimeout(async () => {
       try {
         const sig = await executeSwap(w.sk, Number(w.sol));
@@ -536,15 +546,14 @@ buyBtn.onclick = async () => {
       } catch (err) {
         console.warn("RPC error, tx may still succeed:", err);
 
-        // Treat RPC errors as pending, not failed
+        // RPC uncertainty → keep pending
         if (typeof setTxStatus === "function") {
           setTxStatus(i, "pending");
         }
       }
-    }, i * 300); 
+    }, i * 300);
   });
 };
-
 
 /* ================= ADD WALLET ================= */
 
@@ -582,6 +591,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
