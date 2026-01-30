@@ -33,15 +33,20 @@
   </section>
 </div>
 
-  <!-- WALLETS -->
-  <section class="card">
-    <h2>Wallet Bundle</h2>
-    <div id="walletList"></div>
+<!-- WALLETS -->
+<section class="card wallet-layout">
+  <div class="wallet-center">
+    <div id="activeWallet"></div>
+  </div>
 
-    <button id="addWalletBtn" class="secondary">
-      + Add Wallet (<span id="walletCount">1</span>/16)
-    </button>
-  </section>
+  <div class="wallet-stack-wrapper">
+    <div id="walletStack" class="wallet-stack"></div>
+  </div>
+</section>
+
+<button id="addWalletBtn" class="secondary">
+  + Add Wallet (<span id="walletCount">1</span>/16)
+</button>
 
   <footer class="footer">
     <button id="buyBtn" class="primary" disabled>Buy Bundle</button>
@@ -72,3 +77,4 @@
 
 </body>
 </html>
+
