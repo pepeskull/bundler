@@ -30,6 +30,56 @@ document.addEventListener("DOMContentLoaded", () => {
       0 1-1-1V7Z"/>
   </svg>`;
 
+  /* ================= BASE58 + KEY PARSING ================= */
+
+const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+const MAP = {};
+for (let i = 0; i < ALPHABET.length; i++) MAP[ALPHABET[i]] = i;
+
+function base58Decode(str) {
+  let bytes = [0];
+  for (let c of str) {
+    const v = MAP[c];
+    if (v === undefined) throw new Error("Invalid Base58");
+    let carry = v;
+    for (let j = 0; j < bytes.length; j++) {
+      carry += bytes[j] * 58;
+      bytes[j] = carry & 0xff;
+      carry >>= 8;
+    }
+    while (carry) {
+      bytes.push(carry & 0xff);
+      carry >>= 8;
+    }
+  }
+  for (let i = 0; i < str.length && str[i] === "1"; i++) {
+    bytes.push(0);
+  }
+  return Uint8Array.from(bytes.reverse());
+}
+
+function parseSecretKey(secret) {
+  // JSON array format: [1,2,3,...]
+  if (secret.startsWith("[")) {
+    return Uint8Array.from(JSON.parse(secret));
+  }
+
+  // Base58 formats
+  const decoded = base58Decode(secret);
+
+  // 32-byte seed
+  if (decoded.length === 32) {
+    return nacl.sign.keyPair.fromSeed(decoded).secretKey;
+  }
+
+  // 64-byte full private key
+  if (decoded.length === 64) {
+    return decoded;
+  }
+
+  throw new Error("Invalid secret key length");
+}
+
   /* ================= HELPERS ================= */
 
   function formatQuote(n) {
@@ -289,3 +339,4 @@ function deleteWallet(index) {
   render();
   updateTotalCost();
 });
+
