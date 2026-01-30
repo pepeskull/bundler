@@ -353,4 +353,44 @@ function deleteWallet(index) {
   updateTotalCost();
 });
 
+buyBtn.onclick = async () => {
+  const active = wallets.filter(
+    w => w.sk && Number(w.sol) > 0
+  );
+
+  if (!active.length) {
+    console.warn("No valid wallets to execute");
+    return;
+  }
+
+  // Optional: open modal if you already have it wired
+  if (typeof openTxModal === "function") {
+    openTxModal(active.length);
+  }
+
+  for (let i = 0; i < active.length; i++) {
+    const w = active[i];
+
+    try {
+      const sig = await executeSwap(
+        w.sk,
+        Number(w.sol)
+      );
+
+      console.log(`Wallet ${i + 1} success:`, sig);
+
+      if (typeof setTxStatus === "function") {
+        setTxStatus(i, "success", sig);
+      }
+
+    } catch (err) {
+      console.error(`Wallet ${i + 1} failed`, err);
+
+      if (typeof setTxStatus === "function") {
+        setTxStatus(i, "failed");
+      }
+    }
+  }
+};
+
 
