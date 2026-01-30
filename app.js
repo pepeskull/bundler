@@ -89,6 +89,18 @@ function parseSecretKey(secret) {
     return (n / 1_000_000).toFixed(2) + "M";
   }
 
+  /* ================= TOTAL COST ================= */
+
+function updateTotalCost() {
+  const total = wallets.reduce(
+    (sum, w) => sum + (Number(w.sol) || 0),
+    0
+  );
+
+  totalCost.textContent = total.toFixed(4) + " SOL";
+  buyBtn.disabled = total <= 0;
+}
+
   /* ================= DOM ================= */
 
   const addWalletBtn = document.getElementById("addWalletBtn");
@@ -418,6 +430,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
