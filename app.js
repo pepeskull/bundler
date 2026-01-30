@@ -132,7 +132,7 @@ function openTxModal(count) {
     for (let i = 0; i < count; i++) {
       txList.innerHTML += `
         <div class="tx-row">
-          <span>${w.label}</span>
+          <span>Wallet ${i + 1}</span>
           <span class="tx-status queued" id="tx-${i}">
             Queued
           </span>
@@ -582,5 +582,6 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
