@@ -435,7 +435,7 @@ function renderStack() {
   for (let i = 0; i < emptySlots; i++) {
     const empty = document.createElement("div");
     empty.className = "stack-item stack-empty";
-    empty.textContent = "Empty Slot";
+    empty.textContent = "Add Wallet";
     walletStackEl.appendChild(empty);
   }
 
@@ -584,3 +584,4 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
