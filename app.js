@@ -503,7 +503,7 @@ function deleteWallet(index) {
 
 /* ================= BUY ================= */
 
-const MIN_SOL_BUFFER = 0.06; // required for ATA + fees + safety
+const MIN_SOL_BUFFER = 0.0005; // required for ATA + fees + safety
 
 buyBtn.onclick = async () => {
   const stackWallets = wallets.slice(0, wallets.length - 1);
@@ -592,6 +592,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
