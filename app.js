@@ -76,7 +76,6 @@ const SOLSCAN_ICON = `
   const mintInput = document.getElementById("mintAddress");
   const tickerBadge = document.getElementById("tickerBadge");
   const logoPreview = document.getElementById("logoPreview");
-  const logoText = document.getElementById("logoText");
 
   const txModal = document.getElementById("txModal");
   const txList = document.getElementById("txList");
@@ -89,31 +88,37 @@ const SOLSCAN_ICON = `
   const quoteTimers = new WeakMap();
 
   /* ================= TOKEN METADATA ================= */
-  mintInput.addEventListener("input", () => {
-    clearTimeout(mintTimer);
-    mintTimer = setTimeout(async () => {
-      const mint = mintInput.value.trim();
-      if (mint.length < 32) return;
+mintInput.addEventListener("input", () => {
+  clearTimeout(mintTimer);
+  mintTimer = setTimeout(async () => {
+    const mint = mintInput.value.trim();
+    if (mint.length < 32) return;
 
-      const r = await fetch(`/api/new-address?mode=tokenMetadata&mint=${mint}`);
-      const j = await r.json();
-      if (!j.ok) return;
+    const r = await fetch(
+      `/api/new-address?mode=tokenMetadata&mint=${mint}`
+    );
+    const j = await r.json();
+    if (!j.ok) return;
 
-      tickerBadge.textContent = j.symbol || "—";
+    // Ticker
+    tickerBadge.textContent = j.symbol || "—";
 
-      if (j.image) {
-        logoPreview.src = j.image;
-        logoPreview.style.display = "block";
-        logoText.style.display = "none";
-      } else {
-        logoPreview.style.display = "none";
-        logoText.style.display = "block";
-      }
-      tokenDecimals = j.decimals ?? null;
+    // Logo (image only, no text fallback)
+    if (j.image) {
+      logoPreview.src = j.image;
+      logoPreview.style.display = "block";
+    } else {
+      logoPreview.style.display = "none";
+      logoPreview.src = "";
+    }
 
-      refreshAllQuotes();
-    }, 400);
-  });
+    // Decimals for quoting
+    tokenDecimals = j.decimals ?? null;
+
+    // Recalculate all wallet quotes
+    refreshAllQuotes();
+  }, 400);
+});
 
   async function fetchSolBalance(pubkey) {
     const r = await fetch(`/api/sol-balance?pubkey=${pubkey}`);
@@ -391,4 +396,5 @@ function setTxStatus(i, status, sig) {
     renderWallets();
   };
 });
+
 
