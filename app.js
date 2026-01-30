@@ -134,7 +134,7 @@ function openTxModal(count) {
     for (let i = 0; i < count; i++) {
       txList.innerHTML += `
         <div class="tx-row">
-          <span>Wallet ${i + 1}</span>
+          <span>${w.label}</span>
           <span class="tx-status queued" id="tx-${i}">
             Queued
           </span>
@@ -394,13 +394,14 @@ function renderStack() {
 
     const div = document.createElement("div");
     div.className = "stack-item stack-wallet";
+    div.dataset.id = w.id;
     div.dataset.index = i;
 
     div.innerHTML = `
       <div class="stack-wallet-content">
         <div class="stack-wallet-header">
           <span class="drag-handle" title="Drag to reorder">☰</span>
-          <strong>Wallet ${i + 1}</strong>
+          <strong>${w.label}</strong>
           <button class="delete-wallet" title="Delete wallet">
             ${TRASH_ICON}
           </button>
@@ -472,8 +473,9 @@ function syncWalletOrderFromStack() {
   const newOrder = [];
 
   walletStackEl.querySelectorAll(".stack-wallet").forEach(node => {
-    const idx = Number(node.dataset.index);
-    newOrder.push(wallets[idx]);
+    const id = node.dataset.id;
+    const wallet = wallets.find(w => w.id === id);
+    if (wallet) newOrder.push(wallet);
   });
 
   const active = wallets[activeWalletIndex];
@@ -481,7 +483,6 @@ function syncWalletOrderFromStack() {
   wallets = [...newOrder, active];
   activeWalletIndex = wallets.length - 1;
 
-  // 🔑 stack only — do NOT touch active wallet
   render({ stackOnly: true });
 }
 
@@ -552,7 +553,11 @@ buyBtn.onclick = async () => {
 addWalletBtn.onclick = () => {
   if (wallets.length >= MAX_WALLETS) return;
 
+  const walletNumber = wallets.length + 1;
+
   wallets.push({
+    id: crypto.randomUUID(),      // 🔑 stable identity
+    label: `Wallet ${walletNumber}`, // 🔑 never changes
     secret: "",
     sk: null,
     sol: "",
@@ -567,6 +572,8 @@ addWalletBtn.onclick = () => {
 /* ================= INIT ================= */
 
 wallets.push({
+  id: crypto.randomUUID(),
+  label: "Wallet 1",
   secret: "",
   sk: null,
   sol: "",
@@ -577,4 +584,3 @@ wallets.push({
 render();
 updateTotalCost();
 });
-
