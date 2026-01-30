@@ -161,11 +161,19 @@ function setTxStatus(i, status, sig, message) {
   }
 
   if (status === "success") {
-    el.innerHTML = `
-      Success
-      <a href="https://solscan.io/tx/${sig}" target="_blank">↗</a>
-    `;
     el.className = "tx-status success";
+    el.innerHTML = `
+      <span class="tx-success-text">Success</span>
+      <a
+        href="https://solscan.io/tx/${sig}"
+        target="_blank"
+        rel="noopener"
+        class="tx-link"
+        title="View on Solscan"
+      >
+        ${SOLSCAN_ICON}
+      </a>
+    `;
   }
 }
 
@@ -592,6 +600,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
