@@ -403,4 +403,6 @@ function setTxStatus(i, status, sig) {
 
   activeIndex = 0;
   renderWallets();
-};
+  };
+});
+
