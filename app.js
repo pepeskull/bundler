@@ -199,202 +199,149 @@ mintInput.addEventListener("input", () => {
   return res.signature;
 }
 
-  /* ================= WALLET UI ================= */
-  function renderWallets() {
-    walletList.innerHTML = "";
+ /* ================= WALLET STATE ================= */
 
-    wallets.forEach((w, i) => {
-      const div = document.createElement("div");
-      div.className = "wallet";
-      if (i !== 0) div.classList.add("collapsed");
+const MAX_WALLETS = 16;
+let wallets = [];
+let activeWalletIndex = 0;
 
-      div.innerHTML = `
-        <div class="wallet-header">
-          <span class="wallet-title">
-            Wallet ${i + 1}
-            <button class="delete-wallet">${TRASH_ICON}</button>
-          </span>
+const activeWalletEl = document.getElementById("activeWallet");
+const walletStackEl = document.getElementById("walletStack");
+const walletCount = document.getElementById("walletCount");
 
-          <span class="wallet-summary">
-            ${w.balance.replace("Balance: ", "") || ""}
-            ${w.lastStatus || ""}
-            <span class="chevron">▾</span>
-          </span>
-        </div>
+/* ================= RENDER ================= */
 
-        <div class="wallet-body">
-          <label>Private Key</label>
-          <input class="secret-input" value="${w.secret}" />
+function render() {
+  renderActiveWallet();
+  renderStack();
+  walletCount.textContent = wallets.length;
+}
 
-          <div class="amount-row">
-            <div>
-              <label class="sol-balance-label">${w.balance}</label>
-              <input type="number" step="0.0001" min="0" value="${w.sol}" />
-            </div>
-            <div>
-              <label>Quote</label>
-              <input type="text" readonly value="${w.quote}" />
-            </div>
-          </div>
-        </div>
-      `;
+/* ACTIVE WALLET */
 
-      div.querySelector(".wallet-header").onclick = () => {
-        document.querySelectorAll(".wallet").forEach(el => {
-          if (el !== div) el.classList.add("collapsed");
-        });
-        div.classList.toggle("collapsed");
-      };
+function renderActiveWallet() {
+  const w = wallets[activeWalletIndex];
+  if (!w) return;
 
-      div.querySelector(".delete-wallet").onclick = e => {
-        e.stopPropagation();
-        wallets.splice(i, 1);
-        renderWallets();
-        updateTotalCost();
-      };
+  activeWalletEl.innerHTML = "";
+  const div = document.createElement("div");
+  div.className = "wallet active-wallet";
 
-      const pkInput = div.querySelector(".secret-input");
-      const solInput = div.querySelector("input[type='number']");
-      const quoteInput = div.querySelector("input[readonly]");
-      const balanceLabel = div.querySelector(".sol-balance-label");
+  div.innerHTML = `
+    <label>Private Key</label>
+    <input class="secret-input" value="${w.secret}" />
 
-      pkInput.onblur = async () => {
-        try {
-          const sk = parseSecretKey(pkInput.value.trim());
-          const kp = solanaWeb3.Keypair.fromSecretKey(sk);
-          const sol = await fetchSolBalance(kp.publicKey.toBase58());
-          w.secret = pkInput.value;
-          w.sk = sk;
-          w.balance = `Balance: ${sol.toFixed(4)} SOL`;
-          balanceLabel.textContent = w.balance;
-          renderWallets();
-        } catch {
-          balanceLabel.textContent = "Balance: Invalid key";
-        }
-      };
+    <div class="amount-row">
+      <div>
+        <label class="sol-balance-label">${w.balance}</label>
+        <input type="number" step="0.0001" value="${w.sol}" />
+      </div>
+      <div>
+        <label>Quote</label>
+        <input type="text" readonly value="${w.quote}" />
+      </div>
+    </div>
+  `;
 
-      solInput.oninput = () => {
-        w.sol = solInput.value;
-        updateTotalCost();
-        debounceQuote(div, w, solInput, quoteInput);
-      };
+  const pk = div.querySelector(".secret-input");
+  const sol = div.querySelector("input[type='number']");
 
-      walletList.appendChild(div);
-    });
-
-    walletCount.textContent = wallets.length;
-  }
-
-  function debounceQuote(walletEl, wallet, solInput, outInput) {
-    if (quoteTimers.has(walletEl)) clearTimeout(quoteTimers.get(walletEl));
-    outInput.value = "…";
-    const t = setTimeout(async () => {
-      const q = await getQuote(Number(solInput.value));
-      wallet.quote = formatQuote(q);
-      outInput.value = wallet.quote;
-    }, 400);
-    quoteTimers.set(walletEl, t);
-  }
-
-  function refreshAllQuotes() {
-    document.querySelectorAll(".wallet").forEach((el, i) => {
-      const sol = el.querySelector("input[type='number']");
-      const out = el.querySelector("input[readonly]");
-      if (Number(sol.value) > 0) debounceQuote(el, wallets[i], sol, out);
-    });
-  }
-
-  function updateTotalCost() {
-    const total = wallets.reduce((s, w) => s + (Number(w.sol) || 0), 0);
-    totalCost.textContent = total.toFixed(4) + " SOL";
-    buyBtn.disabled = total <= 0;
-  }
-
-  /* ================= BUY ================= */
-  buyBtn.onclick = async () => {
-    const active = wallets.filter(w => w.sk && w.sol);
-    if (!active.length) return;
-
-    openTxModal(active.length);
-
-    active.forEach((w, i) => {
-      w.lastStatus = "⏳";
-      renderWallets();
-
-      setTimeout(async () => {
-        try {
-          const sig = await executeSwap(w.sk, Number(w.sol));
-          setTxStatus(i, "success", sig);
-          w.lastStatus = "✅";
-        } catch {
-          setTxStatus(i, "failed");
-          w.lastStatus = "❌";
-        }
-        renderWallets();
-      }, i * 250);
-    });
+  pk.onblur = async () => {
+    try {
+      const sk = parseSecretKey(pk.value.trim());
+      const kp = solanaWeb3.Keypair.fromSecretKey(sk);
+      const bal = await fetchSolBalance(kp.publicKey.toBase58());
+      w.secret = pk.value;
+      w.sk = sk;
+      w.balance = `Balance: ${bal.toFixed(4)} SOL`;
+      render();
+    } catch {
+      w.balance = "Balance: Invalid key";
+      render();
+    }
   };
 
-  /* ================= MODAL ================= */
-  function openTxModal(count) {
-    txList.innerHTML = "";
-    for (let i = 0; i < count; i++) {
-      txList.innerHTML += `
-        <div class="tx-row">
-          <span>Wallet ${i + 1}</span>
-          <span class="tx-status queued" id="tx-${i}">Queued</span>
-        </div>`;
-    }
-    txModal.classList.remove("hidden");
-  }
+  sol.oninput = () => {
+    w.sol = sol.value;
+    updateTotalCost();
+  };
 
-function setTxStatus(i, status, sig) {
-  const el = document.getElementById(`tx-${i}`);
-  if (status === "success") {
-    el.innerHTML = `
-      <span class="tx-success-text">Success</span>
-      <a
-        href="https://solscan.io/tx/${sig}"
-        target="_blank"
-        rel="noopener"
-        class="tx-link"
-        aria-label="View on Solscan"
-      >
-        ${SOLSCAN_ICON}
-      </a>
+  activeWalletEl.appendChild(div);
+}
+
+/* STACK */
+
+function renderStack() {
+  walletStackEl.innerHTML = "";
+
+  const stackWallets = wallets
+    .map((w, i) => ({ w, i }))
+    .filter(x => x.i !== activeWalletIndex);
+
+  // Render wallets
+  stackWallets.forEach(({ w, i }) => {
+    const div = document.createElement("div");
+    div.className = "stack-item stack-wallet";
+    div.style.animation = "slideInRight 0.2s ease";
+
+    div.innerHTML = `
+      <div>
+        <strong>Wallet ${i + 1}</strong><br/>
+        ${w.balance || ""}
+      </div>
     `;
-    el.className = "tx-status success";
-  } else {
-    el.textContent = "Failed";
-    el.className = "tx-status failed";
+
+    div.onclick = () => activateWallet(i);
+    walletStackEl.appendChild(div);
+  });
+
+  // Empty slots
+  const empty = MAX_WALLETS - wallets.length;
+  for (let i = 0; i < empty; i++) {
+    const div = document.createElement("div");
+    div.className = "stack-item stack-empty";
+    div.textContent = "Empty Slot";
+    walletStackEl.appendChild(div);
   }
 }
 
-  /* ================= INIT ================= */
-  wallets.unshift({
+/* ================= ACTIONS ================= */
+
+function activateWallet(index) {
+  if (index === activeWalletIndex) return;
+
+  const prev = activeWalletIndex;
+  activeWalletIndex = index;
+  render();
+}
+
+addWalletBtn.onclick = () => {
+  if (wallets.length >= MAX_WALLETS) return;
+
+  wallets.push({
     secret: "",
     sk: null,
     sol: "",
     quote: "",
-    balance: "Balance: ",
-    lastStatus: ""
+    balance: "Balance: "
   });
 
-  renderWallets();
-  updateTotalCost();
+  activeWalletIndex = wallets.length - 1;
+  render();
+};
 
-  addWalletBtn.onclick = () => {
-    if (wallets.length >= 16) return;
-    wallets.unshift({
-      secret: "",
-      sk: null,
-      sol: "",
-      quote: "",
-      balance: "Balance: ",
-      lastStatus: ""
-    });
-    renderWallets();
-  };
+/* ================= INIT ================= */
+
+wallets.push({
+  secret: "",
+  sk: null,
+  sol: "",
+  quote: "",
+  balance: "Balance: "
 });
+
+render();
+updateTotalCost();
+
 
 
