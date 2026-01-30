@@ -573,12 +573,3 @@ wallets.push({
 render();
 updateTotalCost();
 });
-
-
-
-
-
-
-
-
-
