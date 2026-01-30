@@ -217,6 +217,7 @@ button {
   justify-content:space-between;
   align-items:center;
   margin-bottom: 20px;
+  margin-top: 20px;
 }
 
 .muted {
@@ -462,7 +463,7 @@ svg.alert-icon {
 
 /* STACK */
 .wallet-stack-wrapper {
-  max-height: 520px;
+  max-height: 200px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -475,7 +476,7 @@ svg.alert-icon {
 
 /* STACK ITEMS (wallet + empty) */
 .stack-item {
-  height: 230px;
+  height: 50px;
   border-radius: 12px;
   border: 1px solid #0c0c0c;
   background: #040404;
@@ -598,4 +599,3 @@ text-align: center;
     grid-template-columns: 1fr;
   }
 }
-
