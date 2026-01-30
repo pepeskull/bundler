@@ -476,7 +476,7 @@ svg.alert-icon {
 
 /* STACK ITEMS (wallet + empty) */
 .stack-item {
-  height: 50px;
+  height: 70px;
   border-radius: 12px;
   border: 1px solid #0c0c0c;
   background: #040404;
@@ -615,4 +615,30 @@ text-align: center;
 
 .wallet-stack-wrapper::-webkit-scrollbar-track {
   background: transparent;
+}
+
+.stack-wallet-balance {
+  color: #00e676; /* your green */
+  font-size: 12px;
+}
+
+.stack-wallet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stack-wallet .delete-wallet {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+}
+
+.stack-wallet .delete-wallet:hover {
+  color: #ef4444;
+}
+
+.stack-wallet-content {
+    width: 220px;
 }
