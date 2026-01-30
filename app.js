@@ -313,11 +313,14 @@ async function fetchSolBalance(pubkey) {
 
   /* ================= RENDER ================= */
 
-  function render() {
+  function render({ stackOnly = false } = {}) {
+  if (!stackOnly) {
     renderActiveWallet();
-    renderStack();
-    walletCount.textContent = wallets.length;
   }
+
+  renderStack();
+  walletCount.textContent = wallets.length;
+}
 
   function renderActiveWallet() {
     const w = wallets[activeWalletIndex];
@@ -478,7 +481,8 @@ function syncWalletOrderFromStack() {
   wallets = [...newOrder, active];
   activeWalletIndex = wallets.length - 1;
 
-  render();
+  // 🔑 stack only — do NOT touch active wallet
+  render({ stackOnly: true });
 }
 
 /* ================= ACTIONS ================= */
@@ -573,3 +577,4 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
