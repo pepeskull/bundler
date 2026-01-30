@@ -345,9 +345,7 @@ svg.alert-icon {
 
 /* Keep logo visually balanced */
 #logoPreview {
-  height: 100px;
-  width: 100px;
-  border: 1px solid #0c0c0c;
+  border: 0px solid #0c0c0c;
   border-radius: 50%;
 }
 
