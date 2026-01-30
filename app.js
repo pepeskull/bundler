@@ -284,7 +284,3 @@ function deleteWallet(index) {
   render();
   updateTotalCost();
 });
-
-.stack-wallet-content {
-    width: 220px;
-}
