@@ -441,6 +441,93 @@ svg.alert-icon {
 }
 
 /* ================================
+   WALLET 2-COLUMN LAYOUT
+================================ */
+
+.wallet-layout {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ACTIVE WALLET */
+.wallet-center {
+  min-width: 0;
+}
+
+.active-wallet {
+  animation: slideInLeft 0.25s ease;
+}
+
+/* STACK */
+.wallet-stack-wrapper {
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.wallet-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* STACK ITEMS (wallet + empty) */
+.stack-item {
+  height: 230px;
+  border-radius: 12px;
+  border: 1px solid #0c0c0c;
+  background: #040404;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #666;
+}
+
+/* COLLAPSED WALLET */
+.stack-wallet {
+  padding: 14px;
+  justify-content: space-between;
+  cursor: pointer;
+  color: #ccc;
+}
+
+.stack-wallet:hover {
+  border-color: #6366f1;
+}
+
+/* EMPTY SLOT */
+.stack-empty {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* ANIMATIONS */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ================================
    TOKEN TOP-LEVEL CARDS
 ================================ */
 
@@ -511,3 +598,4 @@ text-align: center;
     grid-template-columns: 1fr;
   }
 }
+
