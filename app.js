@@ -340,8 +340,4 @@ wallets.push({
 
 render();
 updateTotalCost();
-
-
-
-
-
+});
