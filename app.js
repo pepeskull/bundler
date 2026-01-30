@@ -223,23 +223,33 @@ async function fetchSolBalance(pubkey) {
     const bal = activeWalletEl.querySelector(".sol-balance-label");
 
     pk.onblur = async () => {
-      try {
-        const sk = parseSecretKey(pk.value.trim());
-        const kp = solanaWeb3.Keypair.fromSecretKey(sk);
-        const sol = await fetchSolBalance(kp.publicKey.toBase58());
-    
-        w.secret = pk.value.trim();
-        w.sk = sk;
-        w.balance = `Balance: ${sol.toFixed(4)} SOL`;
-    
-        bal.textContent = w.balance;
-      } catch (err) {
-        console.error("Invalid private key:", err);
-        w.sk = null;
-        w.balance = "Balance: Invalid key";
-        bal.textContent = w.balance;
-      }
-    };
+    const value = pk.value.trim();
+  
+    if (!value) {
+      w.sk = null;
+      w.secret = "";
+      w.balance = "Balance: ";
+      bal.textContent = w.balance;
+      return;
+    }
+  
+    try {
+      const sk = parseSecretKey(value);
+      const kp = solanaWeb3.Keypair.fromSecretKey(sk);
+      const sol = await fetchSolBalance(kp.publicKey.toBase58());
+  
+      w.secret = value;
+      w.sk = sk;
+      w.balance = `Balance: ${sol.toFixed(4)} SOL`;
+  
+      bal.textContent = w.balance;
+    } catch (err) {
+      console.error("Invalid private key:", err);
+      w.sk = null;
+      w.balance = "Balance: Invalid key";
+      bal.textContent = w.balance;
+    }
+  };
 
     sol.oninput = () => {
       w.sol = sol.value;
@@ -430,6 +440,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
