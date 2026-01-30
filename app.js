@@ -361,6 +361,7 @@ async function fetchSolBalance(pubkey) {
   
       w.secret = value;
       w.sk = sk;
+      w.balanceSol = sol;
       w.balance = `Balance: ${sol.toFixed(4)} SOL`;
   
       bal.textContent = w.balance;
@@ -591,6 +592,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
