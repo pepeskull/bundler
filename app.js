@@ -202,7 +202,6 @@ mintInput.addEventListener("input", () => {
  /* ================= WALLET STATE ================= */
 
 const MAX_WALLETS = 16;
-let wallets = [];
 let activeWalletIndex = 0;
 
 const activeWalletEl = document.getElementById("activeWallet");
@@ -342,6 +341,7 @@ wallets.push({
 
 render();
 updateTotalCost();
+
 
 
 
