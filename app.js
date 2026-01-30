@@ -67,7 +67,8 @@ const SOLSCAN_ICON = `
   }
 
   /* ================= DOM ================= */
-  const walletList = document.getElementById("walletList");
+  const activeWalletEl = document.getElementById("activeWallet");
+  const walletHistoryEl = document.getElementById("walletHistory");
   const addWalletBtn = document.getElementById("addWalletBtn");
   const walletCount = document.getElementById("walletCount");
   const buyBtn = document.getElementById("buyBtn");
@@ -84,6 +85,7 @@ const SOLSCAN_ICON = `
   closeModal.onclick = () => txModal.classList.add("hidden");
 
   let wallets = [];
+  let activeIndex = 0;
   let tokenDecimals = null;
   let mintTimer;
   const quoteTimers = new WeakMap();
@@ -196,89 +198,98 @@ const SOLSCAN_ICON = `
 
   /* ================= WALLET UI ================= */
   function renderWallets() {
-    walletList.innerHTML = "";
+  activeWalletEl.innerHTML = "";
+  walletHistoryEl.innerHTML = "";
 
-    wallets.forEach((w, i) => {
-      const div = document.createElement("div");
-      div.className = "wallet";
-      if (i !== 0) div.classList.add("collapsed");
+  const active = wallets[activeIndex];
 
-      div.innerHTML = `
-        <div class="wallet-header">
-          <span class="wallet-title">
-            Wallet ${i + 1}
-            <button class="delete-wallet">${TRASH_ICON}</button>
-          </span>
+  /* -------- ACTIVE WALLET -------- */
+  const div = document.createElement("div");
+  div.className = "wallet";
+  div.style.height = "230px";
 
-          <span class="wallet-summary">
-            ${w.balance.replace("Balance: ", "") || ""}
-            ${w.lastStatus || ""}
-            <span class="chevron">▾</span>
-          </span>
+  div.innerHTML = `
+    <div class="wallet-header">
+      <span class="wallet-title">
+        Wallet ${activeIndex + 1}
+        <button class="delete-wallet">${TRASH_ICON}</button>
+      </span>
+      <span>${active.lastStatus || ""}</span>
+    </div>
+
+    <div class="wallet-body">
+      <label>Private Key</label>
+      <input class="secret-input" value="${active.secret}" />
+
+      <div class="amount-row">
+        <div>
+          <label class="sol-balance-label">${active.balance}</label>
+          <input type="number" step="0.0001" min="0" value="${active.sol}" />
         </div>
-
-        <div class="wallet-body">
-          <label>Private Key</label>
-          <input class="secret-input" value="${w.secret}" />
-
-          <div class="amount-row">
-            <div>
-              <label class="sol-balance-label">${w.balance}</label>
-              <input type="number" step="0.0001" min="0" value="${w.sol}" />
-            </div>
-            <div>
-              <label>Quote</label>
-              <input type="text" readonly value="${w.quote}" />
-            </div>
-          </div>
+        <div>
+          <label>Quote</label>
+          <input type="text" readonly value="${active.quote}" />
         </div>
-      `;
+      </div>
+    </div>
+  `;
 
-      div.querySelector(".wallet-header").onclick = () => {
-        document.querySelectorAll(".wallet").forEach(el => {
-          if (el !== div) el.classList.add("collapsed");
-        });
-        div.classList.toggle("collapsed");
-      };
+  activeWalletEl.appendChild(div);
 
-      div.querySelector(".delete-wallet").onclick = e => {
-        e.stopPropagation();
-        wallets.splice(i, 1);
-        renderWallets();
-        updateTotalCost();
-      };
+  /* -------- ACTIVE EVENTS -------- */
+  const pkInput = div.querySelector(".secret-input");
+  const solInput = div.querySelector("input[type='number']");
+  const quoteInput = div.querySelector("input[readonly]");
+  const balanceLabel = div.querySelector(".sol-balance-label");
 
-      const pkInput = div.querySelector(".secret-input");
-      const solInput = div.querySelector("input[type='number']");
-      const quoteInput = div.querySelector("input[readonly]");
-      const balanceLabel = div.querySelector(".sol-balance-label");
+  pkInput.onblur = async () => {
+    try {
+      const sk = parseSecretKey(pkInput.value.trim());
+      const kp = solanaWeb3.Keypair.fromSecretKey(sk);
+      const sol = await fetchSolBalance(kp.publicKey.toBase58());
+      active.secret = pkInput.value;
+      active.sk = sk;
+      active.balance = `Balance: ${sol.toFixed(4)} SOL`;
+      balanceLabel.textContent = active.balance;
+    } catch {
+      balanceLabel.textContent = "Balance: Invalid key";
+    }
+  };
 
-      pkInput.onblur = async () => {
-        try {
-          const sk = parseSecretKey(pkInput.value.trim());
-          const kp = solanaWeb3.Keypair.fromSecretKey(sk);
-          const sol = await fetchSolBalance(kp.publicKey.toBase58());
-          w.secret = pkInput.value;
-          w.sk = sk;
-          w.balance = `Balance: ${sol.toFixed(4)} SOL`;
-          balanceLabel.textContent = w.balance;
-          renderWallets();
-        } catch {
-          balanceLabel.textContent = "Balance: Invalid key";
-        }
-      };
+  solInput.oninput = () => {
+    active.sol = solInput.value;
+    updateTotalCost();
+    debounceQuote(div, active, solInput, quoteInput);
+  };
 
-      solInput.oninput = () => {
-        w.sol = solInput.value;
-        updateTotalCost();
-        debounceQuote(div, w, solInput, quoteInput);
-      };
+  div.querySelector(".delete-wallet").onclick = () => {
+    wallets.splice(activeIndex, 1);
+    activeIndex = Math.max(0, activeIndex - 1);
+    renderWallets();
+    updateTotalCost();
+  };
 
-      walletList.appendChild(div);
-    });
+  /* -------- HISTORY LIST -------- */
+  wallets.forEach((w, i) => {
+    if (i === activeIndex) return;
 
-    walletCount.textContent = wallets.length;
-  }
+    const mini = document.createElement("div");
+    mini.className = "wallet-mini";
+    mini.innerHTML = `
+      <span>Wallet ${i + 1}</span>
+      <span class="status">${w.lastStatus || ""}</span>
+    `;
+
+    mini.onclick = () => {
+      activeIndex = i;
+      renderWallets();
+    };
+
+    walletHistoryEl.appendChild(mini);
+  });
+
+  walletCount.textContent = wallets.length;
+}
 
   function debounceQuote(walletEl, wallet, solInput, outInput) {
     if (quoteTimers.has(walletEl)) clearTimeout(quoteTimers.get(walletEl));
@@ -391,4 +402,3 @@ function setTxStatus(i, status, sig) {
     renderWallets();
   };
 });
-
