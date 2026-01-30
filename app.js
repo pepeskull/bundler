@@ -87,8 +87,21 @@ const SOLSCAN_ICON = `
   let mintTimer;
   const quoteTimers = new WeakMap();
 
+  function refreshActiveQuote() {
+  const w = wallets[activeWalletIndex];
+  if (!w || !w.sol || Number(w.sol) <= 0) return;
+
+  getQuote(Number(w.sol)).then(q => {
+    w.quote = formatQuote(q);
+
+    const quoteInput =
+      activeWalletEl.querySelector("input[readonly]");
+    if (quoteInput) quoteInput.value = w.quote;
+  });
+}
+
   /* ================= TOKEN METADATA ================= */
-mintInput.addEventListener("input", () => {
+  mintInput.addEventListener("input", () => {
   clearTimeout(mintTimer);
   mintTimer = setTimeout(async () => {
     const mint = mintInput.value.trim();
@@ -116,7 +129,7 @@ mintInput.addEventListener("input", () => {
     tokenDecimals = j.decimals ?? null;
 
     // Recalculate all wallet quotes
-    refreshAllQuotes();
+    refreshActiveQuote();
   }, 400);
 });
 
@@ -244,25 +257,30 @@ function renderActiveWallet() {
   const pk = div.querySelector(".secret-input");
   const sol = div.querySelector("input[type='number']");
 
-  pk.onblur = async () => {
-    try {
-      const sk = parseSecretKey(pk.value.trim());
-      const kp = solanaWeb3.Keypair.fromSecretKey(sk);
-      const bal = await fetchSolBalance(kp.publicKey.toBase58());
-      w.secret = pk.value;
-      w.sk = sk;
-      w.balance = `Balance: ${bal.toFixed(4)} SOL`;
-      render();
-    } catch {
-      w.balance = "Balance: Invalid key";
-      render();
-    }
-  };
+  const balanceLabel = div.querySelector(".sol-balance-label");
+
+pk.onblur = async () => {
+  try {
+    const sk = parseSecretKey(pk.value.trim());
+    const kp = solanaWeb3.Keypair.fromSecretKey(sk);
+    const bal = await fetchSolBalance(kp.publicKey.toBase58());
+
+    w.secret = pk.value;
+    w.sk = sk;
+    w.balance = `Balance: ${bal.toFixed(4)} SOL`;
+
+    balanceLabel.textContent = w.balance;
+  } catch {
+    w.balance = "Balance: Invalid key";
+    balanceLabel.textContent = "Balance: Invalid key";
+  }
+};
 
   sol.oninput = () => {
-    w.sol = sol.value;
-    updateTotalCost();
-  };
+  w.sol = sol.value;
+  updateTotalCost();
+  refreshActiveQuote();
+};
 
   activeWalletEl.appendChild(div);
 }
@@ -351,4 +369,5 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
