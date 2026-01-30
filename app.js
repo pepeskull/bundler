@@ -370,8 +370,8 @@ function setTxStatus(i, status, sig) {
     secret: "",
     sk: null,
     sol: "",
-    quote: "--",
-    balance: "Balance: -- SOL",
+    quote: "",
+    balance: "Balance: ",
     lastStatus: ""
   });
 
@@ -384,10 +384,11 @@ function setTxStatus(i, status, sig) {
       secret: "",
       sk: null,
       sol: "",
-      quote: "--",
-      balance: "Balance: -- SOL",
+      quote: "",
+      balance: "Balance: ",
       lastStatus: ""
     });
     renderWallets();
   };
 });
+
