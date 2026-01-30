@@ -390,15 +390,17 @@ function setTxStatus(i, status, sig) {
   updateTotalCost();
 
   addWalletBtn.onclick = () => {
-    if (wallets.length >= 16) return;
-    wallets.unshift({
-      secret: "",
-      sk: null,
-      sol: "",
-      quote: "--",
-      balance: "Balance: -- SOL",
-      lastStatus: ""
-    });
-    renderWallets();
-  };
-});
+  if (wallets.length >= 16) return;
+
+  wallets.unshift({
+    secret: "",
+    sk: null,
+    sol: "",
+    quote: "--",
+    balance: "Balance: -- SOL",
+    lastStatus: ""
+  });
+
+  activeIndex = 0;
+  renderWallets();
+};
