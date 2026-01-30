@@ -163,6 +163,19 @@ function parseSecretKey(secret) {
     });
   }
 
+  /* ================= SOL BALANCE ================= */
+
+async function fetchSolBalance(pubkey) {
+  const r = await fetch(`/api/sol-balance?pubkey=${pubkey}`);
+  const j = await r.json();
+
+  if (!j || typeof j.lamports !== "number") {
+    throw new Error("Invalid balance response");
+  }
+
+  return j.lamports / 1e9;
+}
+
   /* ================= RENDER ================= */
 
   function render() {
@@ -339,4 +352,5 @@ function deleteWallet(index) {
   render();
   updateTotalCost();
 });
+
 
