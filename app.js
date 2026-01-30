@@ -305,6 +305,16 @@ function renderStack() {
 
 /* ================= ACTIONS ================= */
 
+  function updateTotalCost() {
+  const total = wallets.reduce(
+    (sum, w) => sum + (Number(w.sol) || 0),
+    0
+  );
+
+  totalCost.textContent = total.toFixed(4) + " SOL";
+  buyBtn.disabled = total <= 0;
+}
+
 function activateWallet(index) {
   if (index === activeWalletIndex) return;
 
@@ -341,3 +351,4 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
