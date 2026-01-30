@@ -387,3 +387,18 @@ buyBtn.onclick = async () => {
     }
   }
 };
+
+    /* ================= INIT ================= */
+
+  wallets.push({
+    secret: "",
+    sk: null,
+    sol: "",
+    quote: "",
+    balance: "Balance: "
+  });
+
+  render();
+  updateTotalCost();
+});
+
