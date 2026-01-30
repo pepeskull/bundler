@@ -301,11 +301,25 @@ function renderStack() {
     div.style.animation = "slideInRight 0.2s ease";
 
     div.innerHTML = `
-      <div>
-        <strong>Wallet ${i + 1}</strong><br/>
-        ${w.balance || ""}
-      </div>
-    `;
+  <div class="stack-wallet-content">
+    <div class="stack-wallet-header">
+      <strong>Wallet ${i + 1}</strong>
+
+      <button class="delete-wallet" title="Delete wallet">
+        ${TRASH_ICON}
+      </button>
+    </div>
+
+    <div class="stack-wallet-meta">
+      ${w.sol ? `${Number(w.sol).toFixed(4)} SOL` : "--"}
+      ${w.quote ? `→ ${w.quote}` : ""}
+    </div>
+
+    <div class="stack-wallet-balance">
+      ${w.balance || ""}
+    </div>
+  </div>
+`;
 
     div.onclick = () => activateWallet(i);
     walletStackEl.appendChild(div);
@@ -369,5 +383,6 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
