@@ -149,15 +149,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     pk.onblur = async () => {
       try {
-        const sk = nacl.sign.keyPair.fromSeed(
-          Uint8Array.from(JSON.parse(pk.value))
-        ).secretKey;
-        w.secret = pk.value;
+        const sk = parseSecretKey(pk.value.trim());
+        const kp = solanaWeb3.Keypair.fromSecretKey(sk);
+        const sol = await fetchSolBalance(kp.publicKey.toBase58());
+    
+        w.secret = pk.value.trim();
         w.sk = sk;
-        w.balance = "Balance: OK";
+        w.balance = `Balance: ${sol.toFixed(4)} SOL`;
+    
         bal.textContent = w.balance;
-      } catch {
-        bal.textContent = "Balance: Invalid key";
+      } catch (err) {
+        console.error("Invalid private key:", err);
+        w.sk = null;
+        w.balance = "Balance: Invalid key";
+        bal.textContent = w.balance;
       }
     };
 
