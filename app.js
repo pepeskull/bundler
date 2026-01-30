@@ -386,10 +386,15 @@ buyBtn.onclick = async () => {
   const executionList = [...stackWallets, activeWallet]
     .filter(w => w.sk && Number(w.sol) > 0);
 
-  if (!executionList.length) return;
-
+  // ✅ ALWAYS open modal
   if (typeof openTxModal === "function") {
     openTxModal(executionList.length);
+  }
+
+  // If nothing to execute, stop AFTER opening modal
+  if (!executionList.length) {
+    console.warn("No executable wallets");
+    return;
   }
 
   for (let i = 0; i < executionList.length; i++) {
@@ -402,7 +407,8 @@ buyBtn.onclick = async () => {
       if (typeof setTxStatus === "function") {
         setTxStatus(i, "success", sig);
       }
-    } catch {
+    } catch (err) {
+      console.error("Swap failed:", err);
       if (typeof setTxStatus === "function") {
         setTxStatus(i, "failed");
       }
@@ -440,6 +446,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
