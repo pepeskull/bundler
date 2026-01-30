@@ -206,7 +206,6 @@ let activeWalletIndex = 0;
 
 const activeWalletEl = document.getElementById("activeWallet");
 const walletStackEl = document.getElementById("walletStack");
-const walletCount = document.getElementById("walletCount");
 
 /* ================= RENDER ================= */
 
@@ -341,6 +340,7 @@ wallets.push({
 
 render();
 updateTotalCost();
+
 
 
 
