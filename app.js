@@ -115,6 +115,70 @@ function updateTotalCost() {
   const activeWalletEl = document.getElementById("activeWallet");
   const walletStackEl = document.getElementById("walletStack");
 
+  /* ================= TX MODAL ================= */
+
+const txModal = document.getElementById("txModal");
+const txList = document.getElementById("txList");
+const closeModal = document.getElementById("closeModal");
+
+closeModal.onclick = () => txModal.classList.add("hidden");
+
+function openTxModal(count) {
+  txList.innerHTML = "";
+
+  if (count === 0) {
+    txList.innerHTML = `
+      <div class="tx-row">
+        <span>No executable wallets</span>
+        <span class="tx-status failed">
+          Check balance / private key
+        </span>
+      </div>
+    `;
+  } else {
+    for (let i = 0; i < count; i++) {
+      txList.innerHTML += `
+        <div class="tx-row">
+          <span>Wallet ${i + 1}</span>
+          <span class="tx-status queued" id="tx-${i}">
+            Queued
+          </span>
+        </div>
+      `;
+    }
+  }
+
+  txModal.classList.remove("hidden");
+}
+
+function setTxStatus(i, status, sig) {
+  const el = document.getElementById(`tx-${i}`);
+  if (!el) return;
+
+  if (status === "success") {
+    el.innerHTML = `
+      <span>Success</span>
+      <a
+        href="https://solscan.io/tx/${sig}"
+        target="_blank"
+        rel="noopener"
+        class="tx-link"
+      >
+        ${SOLSCAN_ICON}
+      </a>
+    `;
+    el.className = "tx-status success";
+  } 
+  else if (status === "pending") {
+    el.textContent = "Pending";
+    el.className = "tx-status pending";
+  } 
+  else {
+    el.textContent = "Failed";
+    el.className = "tx-status failed";
+  }
+}
+
   /* ================= STATE ================= */
 
   const MAX_WALLETS = 16;
