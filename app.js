@@ -124,10 +124,8 @@ function openTxModal(count) {
   if (count === 0) {
     txList.innerHTML = `
       <div class="tx-row">
-        <span>No executable wallets</span>
-        <span class="tx-status failed">
-          Check balance / private key
-        </span>
+        <span>Execution blocked</span>
+        <span class="tx-status failed">Action required</span>
       </div>
     `;
   } else {
@@ -584,4 +582,5 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
