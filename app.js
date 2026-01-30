@@ -199,7 +199,7 @@ async function executeSwap(secretKey, solAmount) {
       quoteResponse: quote,
       userPublicKey: kp.publicKey.toBase58(),
       wrapAndUnwrapSol: true,
-      prioritizationFeeLamports: "auto",
+      prioritizationFeeLamports: 0,
       dynamicComputeUnitLimit: true
     })
   }).then(r => r.json());
@@ -450,35 +450,39 @@ buyBtn.onclick = async () => {
   const executionList = [...stackWallets, activeWallet]
     .filter(w => w.sk && Number(w.sol) > 0);
 
-  // ✅ ALWAYS open modal
+  // Always open modal
   if (typeof openTxModal === "function") {
     openTxModal(executionList.length);
   }
 
-  // If nothing to execute, stop AFTER opening modal
-  if (!executionList.length) {
-    console.warn("No executable wallets");
-    return;
-  }
+  if (!executionList.length) return;
 
-  for (let i = 0; i < executionList.length; i++) {
-    try {
-      const sig = await executeSwap(
-        executionList[i].sk,
-        Number(executionList[i].sol)
-      );
-
-      if (typeof setTxStatus === "function") {
-        setTxStatus(i, "success", sig);
-      }
-    } catch (err) {
-      console.error("Swap failed:", err);
-      if (typeof setTxStatus === "function") {
-        setTxStatus(i, "failed");
-      }
+  executionList.forEach((w, i) => {
+    // Optional: mark as queued/pending visually
+    if (typeof setTxStatus === "function") {
+      setTxStatus(i, "pending");
     }
-  }
+
+    // STAGGERED execution (CRITICAL)
+    setTimeout(async () => {
+      try {
+        const sig = await executeSwap(w.sk, Number(w.sol));
+
+        if (typeof setTxStatus === "function") {
+          setTxStatus(i, "success", sig);
+        }
+      } catch (err) {
+        console.warn("RPC error, tx may still succeed:", err);
+
+        // Treat RPC errors as pending, not failed
+        if (typeof setTxStatus === "function") {
+          setTxStatus(i, "pending");
+        }
+      }
+    }, i * 300); 
+  });
 };
+
 
 /* ================= ADD WALLET ================= */
 
@@ -510,6 +514,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
