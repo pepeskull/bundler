@@ -193,11 +193,40 @@ continueBtn.onclick = () => {
 /* ================= INIT ================= */
 
 // 🔒 Enforce access FIRST
-const unlocked = enforceAccess();
+(async () => {
+  const hasLocal = enforceAccess();
 
-// Only generate payment if access not yet granted
-if (!unlocked) {
-  createPayment();
+  if (hasLocal) {
+    const ok = await verifyServerAccess();
+    if (!ok) {
+      createPayment();
+    }
+  } else {
+    createPayment();
+  }
+})();
+
+  /* ================= SERVER ACCESS VERIFY ================= */
+
+async function verifyServerAccess() {
+  const token = sessionStorage.getItem("accessToken");
+  if (!token) return false;
+
+  try {
+    const r = await fetch("/api/verify-access", {
+      headers: {
+        Authorization: token
+      }
+    });
+
+    if (!r.ok) throw new Error("invalid");
+
+    return true;
+  } catch {
+    sessionStorage.removeItem("accessToken");
+    showAccess();
+    return false;
+  }
 }
 
   /* ================= BASE58 + KEY PARSING ================= */
@@ -775,6 +804,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
