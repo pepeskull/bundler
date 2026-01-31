@@ -40,6 +40,21 @@ function showBundle() {
   bundlePage.classList.remove("hidden");
 }
 
+/* ================= ACCESS GUARD ================= */
+
+// HARD GATE — runs immediately
+function enforceAccess() {
+  const hasAccess = sessionStorage.getItem("accessToken");
+
+  if (!hasAccess) {
+    showAccess();
+    return false;
+  }
+
+  showBundle();
+  return true;
+}
+
 /* ================= PAYMENT CONFIG ================= */
 
 const REQUIRED_SOL = 0.05;
@@ -61,6 +76,8 @@ async function createPayment() {
   }
 
   continueBtn.disabled = true;
+  continueBtn.classList.remove("success");
+
   addressInput.value = "Generating...";
 
   const r = await fetch("/api/create-payment");
@@ -92,11 +109,11 @@ function startPolling() {
         clearInterval(pollTimer);
         pollTimer = null;
 
+        // 🔐 Grant access
+        sessionStorage.setItem("accessToken", j.access || "ok");
+
         continueBtn.disabled = false;
         continueBtn.classList.add("success");
-
-        // Optional: keep proof of access for reloads
-        sessionStorage.setItem("accessToken", j.access);
       }
     } catch {
       // silent retry
@@ -118,28 +135,27 @@ copyBtn.onclick = async () => {
   }, 1200);
 };
 
-  const hasAccess = sessionStorage.getItem("accessToken");
-
-if (!hasAccess) {
-  // Force user back to access page
-  document.getElementById("access-page")?.classList.remove("hidden");
-  document.getElementById("bundle-page")?.classList.add("hidden");
-} else {
-  document.getElementById("access-page")?.classList.add("hidden");
-  document.getElementById("bundle-page")?.classList.remove("hidden");
-}
-
-
 /* ================= CONTINUE ================= */
 
 continueBtn.onclick = () => {
+  // Final guard — cannot be bypassed by DevTools
+  if (!sessionStorage.getItem("accessToken")) {
+    showAccess();
+    return;
+  }
+
   showBundle();
 };
 
 /* ================= INIT ================= */
 
-showAccess();
-createPayment();
+// 🔒 Enforce access FIRST
+const unlocked = enforceAccess();
+
+// Only generate payment if access not yet granted
+if (!unlocked) {
+  createPayment();
+}
 
   /* ================= BASE58 + KEY PARSING ================= */
 
@@ -716,4 +732,5 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
