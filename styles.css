@@ -563,8 +563,8 @@ transform: translateY(-50%);
 padding: 15px 5px;
 border-radius: 0px 8px 8px 0px;
 font-size: 12px;
-background: #0c0c0c;
-border: 1px solid #0c0c0c;
+/* background: #040404; */
+border-left: 1px solid #0c0c0c;
 color: #ccc;
 font-family: monospace;
 pointer-events: none;
@@ -663,3 +663,4 @@ canvas#qr-canvas {
     height: 180px !important;
     width: 180px !important;
 }
+
