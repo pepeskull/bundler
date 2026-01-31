@@ -25,26 +25,28 @@ document.addEventListener("DOMContentLoaded", () => {
       0 1-1-1V7Z"/>
   </svg>`;
 
-  const accessPage = document.getElementById("access-page");
-  const bundlePage = document.getElementById("bundle-page");
-  
-  function showAccess() {
-    accessPage.classList.remove("hidden");
-    bundlePage.classList.add("hidden");
-  }
-  
-  function showBundle() {
-    accessPage.classList.add("hidden");
-    bundlePage.classList.remove("hidden");
-  }
+  /* ================= PAGE TOGGLE ================= */
 
+const accessPage = document.getElementById("access-page");
+const bundlePage = document.getElementById("bundle-page");
 
-  const REQUIRED_SOL = 0.05;
+function showAccess() {
+  accessPage.classList.remove("hidden");
+  bundlePage.classList.add("hidden");
+}
+
+function showBundle() {
+  accessPage.classList.add("hidden");
+  bundlePage.classList.remove("hidden");
+}
+
+/* ================= PAYMENT CONFIG ================= */
+
+const REQUIRED_SOL = 0.05;
 
 const qrCanvas = document.getElementById("qr-canvas");
-const addressEl = document.getElementById("receive-address");
+const addressInput = document.getElementById("receive-address");
 const copyBtn = document.getElementById("copy-receive-address");
-const newBtn = document.getElementById("generate-new-address-btn");
 const continueBtn = document.getElementById("continue-btn");
 
 let paymentToken = null;
@@ -59,14 +61,13 @@ async function createPayment() {
   }
 
   continueBtn.disabled = true;
-  addressEl.textContent = "Generating...";
+  addressInput.value = "Generating...";
 
   const r = await fetch("/api/create-payment");
   const j = await r.json();
 
   paymentToken = j.token;
-
-  addressEl.textContent = j.pubkey;
+  addressInput.value = j.pubkey;
 
   const qrValue = `solana:${j.pubkey}?amount=${REQUIRED_SOL}`;
   await QRCode.toCanvas(qrCanvas, qrValue, { width: 220 });
@@ -92,11 +93,10 @@ function startPolling() {
         pollTimer = null;
 
         continueBtn.disabled = false;
-
-        // store access token for next page
-        sessionStorage.setItem("accessToken", j.access);
-
         continueBtn.classList.add("success");
+
+        // Optional: keep proof of access for reloads
+        sessionStorage.setItem("accessToken", j.access);
       }
     } catch {
       // silent retry
@@ -104,22 +104,29 @@ function startPolling() {
   }, 3000);
 }
 
-/* ================= COPY ================= */
+/* ================= COPY ADDRESS ================= */
 
-copyBtn.onclick = () => {
-  navigator.clipboard.writeText(addressEl.textContent);
+copyBtn.onclick = async () => {
+  if (!addressInput.value || addressInput.value === "Generating...") return;
+
+  await navigator.clipboard.writeText(addressInput.value);
+
+  const original = copyBtn.textContent;
+  copyBtn.textContent = "Copied!";
+  setTimeout(() => {
+    copyBtn.textContent = original;
+  }, 1200);
 };
 
-/* ================= BUTTONS ================= */
-
-newBtn.onclick = createPayment;
+/* ================= CONTINUE ================= */
 
 continueBtn.onclick = () => {
-  window.location.href = "/bundle";
+  showBundle();
 };
 
 /* ================= INIT ================= */
 
+showAccess();
 createPayment();
 
   /* ================= BASE58 + KEY PARSING ================= */
@@ -697,6 +704,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
