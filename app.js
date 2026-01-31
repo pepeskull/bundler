@@ -1,5 +1,3 @@
-import QRCode from "qrcode";
-
 document.addEventListener("DOMContentLoaded", () => {
   if (!window.solanaWeb3 || !window.nacl) {
     console.error("Missing dependencies");
@@ -26,6 +24,20 @@ document.addEventListener("DOMContentLoaded", () => {
       a1 1 0 0 1-1 1H7a1 1 0
       0 1-1-1V7Z"/>
   </svg>`;
+
+  const accessPage = document.getElementById("access-page");
+  const bundlePage = document.getElementById("bundle-page");
+  
+  function showAccess() {
+    accessPage.classList.remove("hidden");
+    bundlePage.classList.add("hidden");
+  }
+  
+  function showBundle() {
+    accessPage.classList.add("hidden");
+    bundlePage.classList.remove("hidden");
+  }
+
 
   const REQUIRED_SOL = 0.05;
 
@@ -685,6 +697,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
