@@ -104,6 +104,9 @@ function setContinueState(state) {
   }
 }
 
+// 👇 expose for console testing
+window.setContinueState = setContinueState;
+
 /* ================= CREATE PAYMENT ================= */
 
 async function createPayment() {
@@ -804,6 +807,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
