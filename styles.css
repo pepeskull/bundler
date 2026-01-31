@@ -664,4 +664,21 @@ canvas#qr-canvas {
     width: 180px !important;
 }
 
+#continue-btn.waiting {
+  opacity: 0.7;
+}
+
+#continue-btn.processing {
+  animation: pulse 1.4s infinite;
+}
+
+#continue-btn.detected {
+  background-color: #1f9d55;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
 
