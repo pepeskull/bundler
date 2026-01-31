@@ -653,3 +653,7 @@ text-align: center;
 section.card {
     max-width: 900px;
 }
+
+.hidden {
+  display: none !important;
+}
