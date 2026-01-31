@@ -1,3 +1,5 @@
+import QRCode from "qrcode";
+
 document.addEventListener("DOMContentLoaded", () => {
   if (!window.solanaWeb3 || !window.nacl) {
     console.error("Missing dependencies");
@@ -24,6 +26,89 @@ document.addEventListener("DOMContentLoaded", () => {
       a1 1 0 0 1-1 1H7a1 1 0
       0 1-1-1V7Z"/>
   </svg>`;
+
+  const REQUIRED_SOL = 0.05;
+
+const qrCanvas = document.getElementById("qr-canvas");
+const addressEl = document.getElementById("receive-address");
+const copyBtn = document.getElementById("copy-receive-address");
+const newBtn = document.getElementById("generate-new-address-btn");
+const continueBtn = document.getElementById("continue-btn");
+
+let paymentToken = null;
+let pollTimer = null;
+
+/* ================= CREATE PAYMENT ================= */
+
+async function createPayment() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+
+  continueBtn.disabled = true;
+  addressEl.textContent = "Generating...";
+
+  const r = await fetch("/api/create-payment");
+  const j = await r.json();
+
+  paymentToken = j.token;
+
+  addressEl.textContent = j.pubkey;
+
+  const qrValue = `solana:${j.pubkey}?amount=${REQUIRED_SOL}`;
+  await QRCode.toCanvas(qrCanvas, qrValue, { width: 220 });
+
+  startPolling();
+}
+
+/* ================= POLL FOR PAYMENT ================= */
+
+function startPolling() {
+  pollTimer = setInterval(async () => {
+    try {
+      const r = await fetch("/api/verify-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: paymentToken })
+      });
+
+      const j = await r.json();
+
+      if (j.paid) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+
+        continueBtn.disabled = false;
+
+        // store access token for next page
+        sessionStorage.setItem("accessToken", j.access);
+
+        continueBtn.classList.add("success");
+      }
+    } catch {
+      // silent retry
+    }
+  }, 3000);
+}
+
+/* ================= COPY ================= */
+
+copyBtn.onclick = () => {
+  navigator.clipboard.writeText(addressEl.textContent);
+};
+
+/* ================= BUTTONS ================= */
+
+newBtn.onclick = createPayment;
+
+continueBtn.onclick = () => {
+  window.location.href = "/bundle";
+};
+
+/* ================= INIT ================= */
+
+createPayment();
 
   /* ================= BASE58 + KEY PARSING ================= */
 
@@ -600,6 +685,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
