@@ -139,19 +139,22 @@ button {
 }
 
 .primary {
-  background-color: #040404;
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 100;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  justify-content: center;
-  border: 1px solid #0c0c0c;
-  font-family: monospace;
+    width: 100%;
+    background-color: #040404;
+    color: #ccc;
+    font-size: 14px;
+    font-weight: 100;
+    padding: 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+    border: 1px solid #0c0c0c;
+    font-family: monospace;
 }
 
 .primary:disabled {
