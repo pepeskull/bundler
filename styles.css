@@ -162,7 +162,7 @@ button {
   cursor:auto;
   background-color: #040404;
   color: #ccc;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 100;
   border-radius: 8px;
   transition: background-color 0.2s;
@@ -663,4 +663,5 @@ canvas#qr-canvas {
     height: 180px !important;
     width: 180px !important;
 }
+
 
