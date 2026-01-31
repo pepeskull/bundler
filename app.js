@@ -704,13 +704,3 @@ wallets.push({
 render();
 updateTotalCost();
 });
-
-
-
-
-
-
-
-
-
-
