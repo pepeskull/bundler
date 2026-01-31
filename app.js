@@ -118,6 +118,18 @@ copyBtn.onclick = async () => {
   }, 1200);
 };
 
+  const hasAccess = sessionStorage.getItem("accessToken");
+
+if (!hasAccess) {
+  // Force user back to access page
+  document.getElementById("access-page")?.classList.remove("hidden");
+  document.getElementById("bundle-page")?.classList.add("hidden");
+} else {
+  document.getElementById("access-page")?.classList.add("hidden");
+  document.getElementById("bundle-page")?.classList.remove("hidden");
+}
+
+
 /* ================= CONTINUE ================= */
 
 continueBtn.onclick = () => {
@@ -704,3 +716,4 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
