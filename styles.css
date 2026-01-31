@@ -350,6 +350,8 @@ svg.alert-icon {
 #logoPreview {
   border: 0px solid #0c0c0c;
   border-radius: 50%;
+  width: 96px;
+  height: 96px;
 }
 
 /* Mobile: stack naturally */
