@@ -21,14 +21,20 @@
         height="220"
         style="display:block;margin:20px auto;"
       ></canvas>
-
+      <div class="address-label" style="margin-bottom: 24px;">Single-Use Address</div>
       <div class="address-box" style="margin-bottom:12px;">
         <span id="receive-address"></span>
         <button id="copy-receive-address" class="secondary">
           Copy
         </button>
       </div>
-
+      <div class="address-note" style="background-color: #040404;border: 0px solid #0c0c0c;border-radius: 0px;padding: 0px;disp;display: inline-flex;justify-content: center;align-items: center;margin-bottom: 24px;gap: 5px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M23 4v6h-6M1 20v-6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+              The system generates a new address on every page load.
+            </div>
       <button
         id="generate-new-address-btn"
         class="secondary"
@@ -148,6 +154,7 @@
 
 </body>
 </html>
+
 
 
 
