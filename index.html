@@ -9,74 +9,145 @@
 <body>
 
 <div class="app">
-  <!-- TOKEN INFO -->
-  <div class="token-row">
 
-  <!-- MINT CARD -->
-  <section class="card">
-    <h2>Token Address</h2>
+  <!-- ================= ACCESS PAGE ================= -->
 
-    <label>Mint Address *</label>
+  <div id="access-page" class="page">
+    <section class="card" style="max-width: 420px; margin: 40px auto;">
+      <h2>Access Required</h2>
+      <p>Send <strong>0.05 SOL</strong> to unlock bundle access.</p>
 
-    <div class="mint-input">
-      <input id="mintAddress" placeholder="SPL Contract Address">
-      <div id="tickerBadge">Ticker</div>
+      <canvas
+        id="qr-canvas"
+        width="220"
+        height="220"
+        style="display:block;margin:20px auto;"
+      ></canvas>
+
+      <div class="address-box" style="margin-bottom:12px;">
+        <span id="receive-address"></span>
+        <button id="copy-receive-address" class="secondary">
+          Copy
+        </button>
+      </div>
+
+      <button
+        id="generate-new-address-btn"
+        class="secondary"
+        style="width:100%;margin-bottom:12px;"
+      >
+        Generate New Address
+      </button>
+
+      <button
+        id="continue-btn"
+        class="primary"
+        style="width:100%;"
+        disabled
+      >
+        Continue
+      </button>
+
+      <div class="warning" style="margin-top:16px;">
+        Minimum deposit is <strong>0.05 SOL</strong>.
+        Smaller deposits will not unlock access.
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= BUNDLE PAGE ================= -->
+
+  <div id="bundle-page" class="page hidden">
+
+    <!-- TOKEN INFO -->
+    <div class="token-row">
+
+      <!-- MINT CARD -->
+      <section class="card">
+        <h2>Token Address</h2>
+
+        <label>Mint Address *</label>
+
+        <div class="mint-input">
+          <input id="mintAddress" placeholder="SPL Contract Address">
+          <div id="tickerBadge">Ticker</div>
+        </div>
+      </section>
+
+      <!-- LOGO CARD -->
+      <section class="card logo-card">
+        <div class="logo-box">
+          <img id="logoPreview" />
+        </div>
+      </section>
     </div>
-  </section>
 
-  <!-- LOGO CARD -->
-  <section class="card logo-card">
-    <div class="logo-box">
-      <img id="logoPreview" />
+    <!-- WALLETS -->
+    <section class="card wallet-layout">
+      <div class="wallet-center">
+        <div id="activeWallet"></div>
+      </div>
+
+      <div class="wallet-stack-wrapper">
+        <div id="walletStack" class="wallet-stack"></div>
+      </div>
+    </section>
+
+    <button id="addWalletBtn" class="secondary">
+      Add Wallet (<span id="walletCount">1</span>/16)
+    </button>
+
+    <footer class="footer">
+      <button id="buyBtn" class="primary" disabled>
+        Buy Bundle
+      </button>
+      <p>Total Cost: <span id="totalCost">0.0000 SOL</span></p>
+    </footer>
+
+    <section class="warning">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        class="alert-icon"
+      >
+        <path
+          d="M12 22S5 18 5 12V6L12 3L19 6V12C19 18 12 22 12 22Z"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+      </svg>
+      <div id="warning-text">
+        We do NOT store or transmit private keys.
+      </div>
+    </section>
+
+    <!-- TX MODAL -->
+    <div id="txModal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Bundle Execution</h3>
+        <div id="txList"></div>
+        <button id="closeModal" class="secondary">
+          Close
+        </button>
+      </div>
     </div>
-  </section>
-</div>
 
-<!-- WALLETS -->
-<section class="card wallet-layout">
-  <div class="wallet-center">
-    <div id="activeWallet"></div>
-  </div>
-
-  <div class="wallet-stack-wrapper">
-    <div id="walletStack" class="wallet-stack"></div>
-  </div>
-</section>
-
-<button id="addWalletBtn" class="secondary">
-  Add Wallet (<span id="walletCount">1</span>/16)
-</button>
-
-  <footer class="footer">
-    <button id="buyBtn" class="primary" disabled>Buy Bundle</button>
-    <p>Total Cost: <span id="totalCost">0.0000 SOL</span></p>
-  </footer>
-  
-  <section class="warning">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="alert-icon">
-    <path d="M12 22S5 18 5 12V6L12 3L19 6V12C19 18 12 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-    </svg> <div id="warning-text"> We do NOT store or transmit private keys.</div>
-  </section>
-  
-  <div id="txModal" class="modal hidden">
-  <div class="modal-content">
-    <h3>Bundle Execution</h3>
-
-    <div id="txList"></div>
-
-    <button id="closeModal" class="secondary">Close</button>
   </div>
 </div>
 
-</div>
+<!-- ================= SCRIPTS ================= -->
 
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 <script src="https://unpkg.com/@solana/web3.js@1.98.2/lib/index.iife.min.js"></script>
 <script src="https://unpkg.com/tweetnacl@1.0.3/nacl.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>  
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
 <script src="app.js"></script>
 
 </body>
 </html>
-
-
-
