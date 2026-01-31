@@ -665,7 +665,7 @@ canvas#qr-canvas {
 }
 
 #continue-btn.waiting {
-  opacity: 0.7;
+  color: #ccc;
 }
 
 #continue-btn.processing {
@@ -673,12 +673,11 @@ canvas#qr-canvas {
 }
 
 #continue-btn.detected {
-  background-color: #1f9d55;
+  color: #ccc;
 }
 
 @keyframes pulse {
-  0% { opacity: 0.7; }
+  0% { opacity: 0.4; }
   50% { opacity: 1; }
-  100% { opacity: 0.7; }
+  100% { opacity: 0.4; }
 }
-
