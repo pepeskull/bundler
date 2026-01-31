@@ -646,3 +646,7 @@ text-align: center;
 .stack-wallet-content {
     width: 220px;
 }
+
+section.card {
+    max-width: 900px;
+}
