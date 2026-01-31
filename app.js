@@ -42,7 +42,6 @@ function showBundle() {
 
 /* ================= ACCESS GUARD ================= */
 
-// HARD GATE — runs immediately
 function enforceAccess() {
   const hasAccess = sessionStorage.getItem("accessToken");
 
@@ -67,6 +66,44 @@ const continueBtn = document.getElementById("continue-btn");
 let paymentToken = null;
 let pollTimer = null;
 
+/* ================= BUTTON STATE ================= */
+
+function setContinueState(state) {
+  continueBtn.classList.remove(
+    "waiting",
+    "detected",
+    "processing",
+    "ready",
+    "success"
+  );
+
+  switch (state) {
+    case "waiting":
+      continueBtn.textContent = "Waiting for payment…";
+      continueBtn.disabled = true;
+      continueBtn.classList.add("waiting");
+      break;
+
+    case "detected":
+      continueBtn.textContent = "Payment detected";
+      continueBtn.disabled = true;
+      continueBtn.classList.add("detected");
+      break;
+
+    case "processing":
+      continueBtn.textContent = "Funds processing…";
+      continueBtn.disabled = true;
+      continueBtn.classList.add("processing");
+      break;
+
+    case "ready":
+      continueBtn.textContent = "Continue";
+      continueBtn.disabled = false;
+      continueBtn.classList.add("ready");
+      break;
+  }
+}
+
 /* ================= CREATE PAYMENT ================= */
 
 async function createPayment() {
@@ -75,10 +112,8 @@ async function createPayment() {
     pollTimer = null;
   }
 
-  continueBtn.disabled = true;
-  continueBtn.classList.remove("success");
-
   addressInput.value = "Generating...";
+  setContinueState("waiting");
 
   const r = await fetch("/api/create-payment");
   const j = await r.json();
@@ -109,11 +144,20 @@ function startPolling() {
         clearInterval(pollTimer);
         pollTimer = null;
 
+        // 2️⃣ Payment detected
+        setContinueState("detected");
+
         // 🔐 Grant access
         sessionStorage.setItem("accessToken", j.access || "ok");
 
-        continueBtn.disabled = false;
-        continueBtn.classList.add("success");
+        // 3️⃣ Processing → 4️⃣ Ready
+        setTimeout(() => {
+          setContinueState("processing");
+
+          setTimeout(() => {
+            setContinueState("ready");
+          }, 1200);
+        }, 800);
       }
     } catch {
       // silent retry
@@ -138,7 +182,6 @@ copyBtn.onclick = async () => {
 /* ================= CONTINUE ================= */
 
 continueBtn.onclick = () => {
-  // Final guard — cannot be bypassed by DevTools
   if (!sessionStorage.getItem("accessToken")) {
     showAccess();
     return;
@@ -732,5 +775,6 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
