@@ -14,48 +14,71 @@
 
   <div id="access-page" class="page">
     <section class="card" style="max-width: 900px; margin: 40px auto;">
-      <h2>Access Required</h2>
-      <canvas
-        id="qr-canvas"
-        width="220"
-        height="220"
-        style="display:block;margin:20px auto;"
-      ></canvas>
-      <div class="address-label" style="margin-bottom: 24px;">Single-Use Address</div>
-      <div class="address-box" style="margin-bottom:12px;">
-        <span id="receive-address"></span>
-        <button id="copy-receive-address" class="secondary">
-          Copy
-        </button>
-      </div>
-      <div class="address-note" style="background-color: #040404;border: 0px solid #0c0c0c;border-radius: 0px;padding: 0px;disp;display: inline-flex;justify-content: center;align-items: center;margin-bottom: 24px;gap: 5px;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M23 4v6h-6M1 20v-6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-              </svg>
-              The system generates a new address on every page load.
-            </div>
-      <button
-        id="generate-new-address-btn"
-        class="secondary"
-        style="width:100%;margin-bottom:12px;"
-      >
-        Generate New Address
-      </button>
+  <h2>Access Required</h2>
 
-      <button
-        id="continue-btn"
-        class="primary"
-        style="width:100%;"
-        disabled
-      >
-        Continue
-      </button>
+  <canvas
+    id="qr-canvas"
+    width="220"
+    height="220"
+    style="display:block;margin:20px auto;"
+  ></canvas>
 
-      <div class="warning" style="margin-top:16px;">
-        Minimum SOL deposit <strong>0.05 SOL</strong>. Smaller deposits will not be credited.
-      </div>
-    </section>
+  <div class="address-label" style="margin-bottom: 12px;">
+    Single-Use Address
+  </div>
+
+  <!-- ADDRESS INPUT + COPY -->
+  <div class="mint-input" style="margin-bottom: 24px;">
+    <input
+      id="receive-address"
+      value="Generating..."
+      readonly
+    />
+    <button
+      id="copy-receive-address"
+      class="secondary"
+      style="position:absolute;right:0;top:0;height:100%;border-radius:0 8px 8px 0;"
+    >
+      Copy
+    </button>
+  </div>
+
+  <div class="address-note"
+    style="
+      background-color:#040404;
+      border:0;
+      padding:0;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      margin-bottom:24px;
+    "
+  >
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+      xmlns="http://www.w3.org/2000/svg">
+      <path d="M23 4v6h-6M1 20v-6h6"
+        stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round"></path>
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"
+        stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+    New address generated on every page load
+  </div>
+
+  <button
+    id="continue-btn"
+    class="primary"
+    style="width:100%;"
+    disabled
+  >
+    Continue
+  </button>
+
+  <div class="warning" style="margin-top:16px;">
+    Minimum deposit <strong>0.05 SOL</strong>. Smaller deposits will not be credited.
+  </div>
+</section>
   </div>
 
   <!-- ================= BUNDLE PAGE ================= -->
@@ -154,6 +177,7 @@
 
 </body>
 </html>
+
 
 
 
