@@ -657,3 +657,9 @@ section.card {
 .hidden {
   display: none !important;
 }
+
+canvas#qr-canvas {
+    border-radius: 16px;
+    height: 180px !important;
+    width: 180px !important;
+}
