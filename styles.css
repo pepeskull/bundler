@@ -23,6 +23,66 @@ body {
   padding:16px;
 }
 
+/* ================================
+   HEADER
+================================ */
+
+.site-header {
+  width: 100%;
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px 0px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Logo */
+.header-logo {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #e5e7eb;
+  user-select: none;
+}
+
+/* Menu */
+.header-menu {
+  display: flex;
+  gap: 12px;
+}
+
+.menu-btn {
+  background: transparent;
+  border: 0px solid #0c0c0c;
+  color: #ccc;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.menu-btn:hover {
+  border-color: #222;
+  color: #fff;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .header-inner {
+    padding: 12px 14px;
+  }
+
+  .menu-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+
 .card {
   padding: 24px;
   margin-bottom: 20px;
