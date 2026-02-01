@@ -122,7 +122,13 @@ async function createPayment() {
   addressInput.value = j.pubkey;
 
   const qrValue = `solana:${j.pubkey}?amount=${REQUIRED_SOL}`;
-  await QRCode.toCanvas(qrCanvas, qrValue, { width: 220 });
+  await QRCode.toCanvas(qrCanvas, qrValue, {
+  width: 220,
+  color: {
+    dark: "#ffffff",      // QR dots (white)
+    light: "#111113"      // background (dark)
+  }
+});
 
   setContinueState("waiting");
 }
@@ -808,6 +814,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
