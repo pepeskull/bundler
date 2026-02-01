@@ -47,6 +47,7 @@ body {
   letter-spacing: 0.5px;
   color: #e5e7eb;
   user-select: none;
+  font-family: courier;
 }
 
 /* Menu */
@@ -60,9 +61,10 @@ body {
   border: 0px solid #0c0c0c;
   color: #ccc;
   padding: 6px 12px;
-  border-radius: 8px;
+  /* border-radius: 8px; */
   font-size: 13px;
   cursor: pointer;
+  font-family: courier;
 }
 
 .menu-btn:hover {
