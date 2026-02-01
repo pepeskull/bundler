@@ -1,3 +1,5 @@
+console.log("PAYMENTS MAP:", global.__PAYMENTS__);
+
 import {
   Connection,
   Keypair,
