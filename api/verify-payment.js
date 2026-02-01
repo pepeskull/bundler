@@ -18,7 +18,7 @@ import {
 import bs58 from "bs58";
 import fetch from "node-fetch";
 
-const REQUIRED_SOL = 0.05;
+const REQUIRED_SOL = 0.0001;
 
 const connection = new Connection(process.env.SOLANA_RPC, "confirmed");
 
