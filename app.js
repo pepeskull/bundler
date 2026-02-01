@@ -44,19 +44,17 @@ function showBundle() {
 
 function enforceAccess() {
   const hasAccess = sessionStorage.getItem("accessToken");
-
   if (!hasAccess) {
     showAccess();
     return false;
   }
-
   showBundle();
   return true;
 }
 
 /* ================= PAYMENT CONFIG ================= */
 
-const REQUIRED_SOL = 0.001;
+const REQUIRED_SOL = 0.001; // testing value
 
 const qrCanvas = document.getElementById("qr-canvas");
 const addressInput = document.getElementById("receive-address");
@@ -64,24 +62,22 @@ const copyBtn = document.getElementById("copy-receive-address");
 const continueBtn = document.getElementById("continue-btn");
 
 let paymentToken = null;
-let pollTimer = null;
 
 /* ================= BUTTON STATE ================= */
 
 function setContinueState(state) {
-  continueBtn.classList.remove(
-    "waiting",
-    "detected",
-    "processing",
-    "ready",
-    "success"
-  );
+  continueBtn.classList.remove("waiting", "detected", "processing", "ready");
 
   switch (state) {
     case "waiting":
-      continueBtn.textContent = "Waiting for payment…";
-      continueBtn.disabled = true;
+      continueBtn.textContent = "I’ve sent the payment";
+      continueBtn.disabled = false;
       continueBtn.classList.add("waiting");
+      break;
+
+    case "checking":
+      continueBtn.textContent = "Checking payment…";
+      continueBtn.disabled = true;
       break;
 
     case "detected":
@@ -101,22 +97,23 @@ function setContinueState(state) {
       continueBtn.disabled = false;
       continueBtn.classList.add("ready");
       break;
+
+    case "not-found":
+      continueBtn.textContent = "No deposit found";
+      continueBtn.disabled = true;
+      setTimeout(() => setContinueState("waiting"), 3000);
+      break;
   }
 }
 
-// 👇 expose for console testing
+// expose for console testing
 window.setContinueState = setContinueState;
 
 /* ================= CREATE PAYMENT ================= */
 
 async function createPayment() {
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
-
-  addressInput.value = "Generating...";
-  setContinueState("waiting");
+  addressInput.value = "Generating…";
+  continueBtn.disabled = true;
 
   const r = await fetch("/api/create-payment");
   const j = await r.json();
@@ -127,87 +124,78 @@ async function createPayment() {
   const qrValue = `solana:${j.pubkey}?amount=${REQUIRED_SOL}`;
   await QRCode.toCanvas(qrCanvas, qrValue, { width: 220 });
 
-  startPolling();
+  setContinueState("waiting");
 }
 
-/* ================= POLL FOR PAYMENT ================= */
+/* ================= VERIFY PAYMENT (ON CLICK) ================= */
 
-function startPolling() {
-  pollTimer = setInterval(async () => {
-    try {
-      const r = await fetch("/api/verify-payment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: paymentToken })
-      });
+async function verifyPaymentOnce() {
+  setContinueState("checking");
 
-      const j = await r.json();
+  try {
+    const r = await fetch("/api/verify-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: paymentToken })
+    });
 
-      if (j.paid) {
-        clearInterval(pollTimer);
-        pollTimer = null;
+    const j = await r.json();
 
-        // 2️⃣ Payment detected
-        setContinueState("detected");
-
-        // 🔐 Grant access
-        sessionStorage.setItem("accessToken", j.access || "ok");
-
-        // 3️⃣ Processing → 4️⃣ Ready
-        setTimeout(() => {
-          setContinueState("processing");
-
-          setTimeout(() => {
-            setContinueState("ready");
-          }, 1200);
-        }, 800);
-      }
-    } catch {
-      // silent retry
+    if (!j.paid) {
+      setContinueState("not-found");
+      return;
     }
-  }, 3000);
+
+    // Step 2: detected
+    setContinueState("detected");
+
+    // Grant access
+    sessionStorage.setItem("accessToken", j.access || "ok");
+
+    // Step 3 → 4
+    setTimeout(() => {
+      setContinueState("processing");
+
+      setTimeout(() => {
+        setContinueState("ready");
+      }, 1200);
+    }, 800);
+
+  } catch (err) {
+    console.error("VERIFY FAILED:", err);
+    setContinueState("not-found");
+  }
 }
 
 /* ================= COPY ADDRESS ================= */
 
 copyBtn.onclick = async () => {
-  if (!addressInput.value || addressInput.value === "Generating...") return;
+  if (!addressInput.value || addressInput.value.includes("Generating")) return;
 
   await navigator.clipboard.writeText(addressInput.value);
-
   const original = copyBtn.textContent;
   copyBtn.textContent = "Copied!";
-  setTimeout(() => {
-    copyBtn.textContent = original;
-  }, 1200);
+  setTimeout(() => (copyBtn.textContent = original), 1200);
 };
 
-/* ================= CONTINUE ================= */
+/* ================= CONTINUE BUTTON ================= */
 
 continueBtn.onclick = () => {
-  if (!sessionStorage.getItem("accessToken")) {
-    showAccess();
+  if (continueBtn.classList.contains("ready")) {
+    showBundle();
     return;
   }
 
-  showBundle();
+  // User claims they paid → verify ONCE
+  verifyPaymentOnce();
 };
 
 /* ================= INIT ================= */
 
-// 🔒 Enforce access FIRST
-(async () => {
-  const hasLocal = enforceAccess();
-
-  if (hasLocal) {
-    const ok = await verifyServerAccess();
-    if (!ok) {
-      createPayment();
-    }
-  } else {
-    createPayment();
-  }
-})();
+const unlocked = enforceAccess();
+if (!unlocked) {
+  createPayment();
+}
 
   /* ================= SERVER ACCESS VERIFY ================= */
 
@@ -807,6 +795,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
