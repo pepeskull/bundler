@@ -1,5 +1,3 @@
-console.log("PAYMENTS MAP:", global.__PAYMENTS__);
-
 import {
   Connection,
   Keypair,
@@ -17,10 +15,15 @@ import {
   TOKEN_2022_PROGRAM_ID
 } from "@solana/spl-token";
 
+import { Redis } from "@upstash/redis";
 import bs58 from "bs58";
 import fetch from "node-fetch";
 
 const REQUIRED_SOL = 0.001;
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN
+});
 
 const connection = new Connection(process.env.SOLANA_RPC, "confirmed");
 
@@ -42,8 +45,12 @@ async function getTokenProgramId(mint) {
 export default async function handler(req, res) {
   try {
     const { token } = req.body;
-    const entry = global.__PAYMENTS__?.get(token);
-    if (!entry || entry.done) return res.json({ paid: false });
+    if (!token) return res.json({ paid: false });
+
+    const entry = await redis.get(`payment:${token}`);
+    if (!entry || entry.done) {
+      return res.json({ paid: false });
+    }
 
     const depositKP = Keypair.fromSecretKey(
       Uint8Array.from(entry.secretKey)
@@ -144,8 +151,9 @@ export default async function handler(req, res) {
       await connection.sendTransaction(burnTx, [MAIN_WALLET_KP]);
     }
 
+    // Mark payment complete
     entry.done = true;
-    global.__PAYMENTS__.set(token, entry);
+    await redis.set(`payment:${token}`, entry, { ex: 60 * 30 });
 
     return res.json({ paid: true, access: "ok" });
 
