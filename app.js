@@ -125,8 +125,8 @@ async function createPayment() {
   await QRCode.toCanvas(qrCanvas, qrValue, {
   width: 220,
   color: {
-    dark: "#86efac",      // QR dots (white)
-    light: "#232e29"      // background (dark)
+    dark: "#1a1c20",      // QR dots (white)
+    light: "#ffffff"      // background (dark)
   }
 });
 
@@ -814,6 +814,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
