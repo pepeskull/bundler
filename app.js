@@ -382,30 +382,43 @@ function setTxStatus(i, status, sig, message) {
 
   /* ================= TOKEN ================= */
 
-  mintInput.addEventListener("input", () => {
-    clearTimeout(mintTimer);
-    mintTimer = setTimeout(async () => {
-      if (mintInput.value.length < 32) return;
+mintInput.addEventListener("input", () => {
+  clearTimeout(mintTimer);
+  mintTimer = setTimeout(async () => {
+    if (mintInput.value.length < 32) return;
 
-      const r = await fetch(
-        `/api/new-address?mode=tokenMetadata&mint=${mintInput.value}`
-      );
-      const j = await r.json();
-      if (!j.ok) return;
+    const r = await fetch(
+      `/api/new-address?mode=tokenMetadata&mint=${mintInput.value}`
+    );
+    const j = await r.json();
+    if (!j.ok) return;
 
-      tickerBadge.textContent = j.symbol || "—";
-      tokenDecimals = j.decimals ?? null;
+    tickerBadge.textContent = j.symbol || "—";
+    tokenDecimals = j.decimals ?? null;
 
-      if (j.image) {
+    // --- SAFE LOGO HANDLING ---
+    logoPreview.style.display = "none";
+    logoPreview.src = "";
+
+    if (j.image) {
+      const img = new Image();
+
+      img.onload = () => {
         logoPreview.src = j.image;
         logoPreview.style.display = "block";
-      } else {
-        logoPreview.style.display = "none";
-      }
+      };
 
-      refreshActiveQuote();
-    }, 400);
-  });
+      img.onerror = () => {
+        logoPreview.src = "";
+        logoPreview.style.display = "none";
+      };
+
+      img.src = j.image;
+    }
+
+    refreshActiveQuote();
+  }, 400);
+});
 
   async function getQuote(solAmount) {
     if (!tokenDecimals || solAmount <= 0) return null;
@@ -795,6 +808,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
