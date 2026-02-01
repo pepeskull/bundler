@@ -68,7 +68,7 @@ input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px #040404 inset !important;
-  box-shadow: 0 0 0 1000px #040404 inset !important;
+  box-shadow: 0 0 0 1000px #18191b inset !important;
   -webkit-text-fill-color: #ccc !important;
   caret-color: #ccc;
   transition: background-color 9999s ease-in-out 0s;
@@ -143,7 +143,7 @@ button {
     background-color: #86efac;
     color: #1a1c20;
     font-size: 14px;
-    font-weight: 100;
+    font-weight: 500;
     padding: 20px;
     border: none;
     border-radius: 8px;
@@ -190,7 +190,6 @@ button {
   justify-content: center;
   border: 1px solid #202124;
   font-family: monospace;
-  font-weight: 500;
 }
 
 .danger {
@@ -352,7 +351,7 @@ svg.alert-icon {
 
 /* Keep logo visually balanced */
 #logoPreview {
-  border: 0px solid #0c0c0c;
+  border: 0px solid #111113;
   border-radius: 50%;
   width: 96px;
   height: 96px;
@@ -557,7 +556,7 @@ svg.alert-icon {
   padding-right: 80px;
 }
 
-#tickerBadge {position: absolute;right: 0px;top: 50%;transform: translateY(-50%);padding: 15px 5px;border-radius: 0px 8px 8px 0px;font-size: 11px;background: #86efac;border: 1px solid #202124;color: #1a1c20;font-family: monospace;pointer-events: none;width: 100px;text-align: center;height: 100%;}
+#tickerBadge {position: absolute;right: 0px;top: 50%;transform: translateY(-50%);padding: 13px 5px;border-radius: 0px 8px 8px 0px;font-size: 16px;background: #86efac;border: 1px solid #202124;color: #1a1c20;font-family: monospace;pointer-events: none;width: 100px;text-align: center;height: 100%;font-weight: bolder;}
 
 /* Logo card internals */
 .logo-card {
@@ -690,6 +689,19 @@ span.fee-label {
     font-weight: 600;
 }
 
+span#totalCost {
+    color: #86efac;
+}
+
+div#bundle-page {
+    padding: 24px;
+    margin-bottom: 20px;
+    background-color: #18191b;
+    border: 1px solid #202124;
+    border-radius: 16px;
+}
+
 .hidden {
   display: none !important;
 }
+
