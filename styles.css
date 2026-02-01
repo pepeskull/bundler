@@ -618,6 +618,19 @@ svg.alert-icon {
   padding-right: 80px;
 }
 
+button#copy-receive-address {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    border-radius: 0 8px 8px 0;
+    max-width: 100px;
+    font-size: 11px;
+    background-color: #202124;
+    color: #fff;
+    border: 0px solid;
+}
+
 #tickerBadge {
   position: absolute;
   right: 0px;top: 50%;
@@ -786,3 +799,4 @@ dot {
 .hidden {
   display: none !important;
 }
+
