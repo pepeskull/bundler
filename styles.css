@@ -241,7 +241,7 @@ button {
 .modal {
   position: fixed;
   inset: 0;
-  background: rgb(0 0 0 / 88%);
+  background: rgb(17 17 19 / 94%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -254,11 +254,11 @@ button {
 
 .modal-content {
   width: 100%;
-  max-width: 420px;
+  max-width: 870px;
   padding: 24px;
   margin-bottom: 24px;
-  background-color: #040404;
-  border: 1px solid #0c0c0c;
+  background-color: #18191b;
+  border: 1px solid #202124;
   border-radius: 16px;
 }
 
@@ -704,4 +704,5 @@ div#bundle-page {
 .hidden {
   display: none !important;
 }
+
 
