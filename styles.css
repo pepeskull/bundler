@@ -761,8 +761,10 @@ div#bundle-page {
     border-radius: 16px;
 }
 
+dot {
+    color: #86efac;
+}
+
 .hidden {
   display: none !important;
 }
-
-
