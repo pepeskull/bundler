@@ -681,3 +681,26 @@ canvas#qr-canvas {
   50% { opacity: 1; }
   100% { opacity: 0.4; }
 }
+
+.fee-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 40px;
+    padding-top: 20px;
+    margin: 5px 0px;
+}
+
+span#platform-fee-sol {
+    font-size: 11px;
+    color: #00e676;
+    font-family: monospace;
+    font-weight: 600;
+}
+
+span.fee-label {
+    font-size: 11px;
+    color: #ccc;
+    font-family: monospace;
+    font-weight: 600;
+}
