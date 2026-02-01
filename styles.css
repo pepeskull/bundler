@@ -355,6 +355,7 @@ svg.alert-icon {
   border-radius: 50%;
   width: 96px;
   height: 96px;
+  display: none;
 }
 
 /* Mobile: stack naturally */
@@ -704,3 +705,4 @@ span.fee-label {
     font-family: monospace;
     font-weight: 600;
 }
+
