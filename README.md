@@ -28,7 +28,7 @@ This project is designed for power users who want to:
 
 ### Frontend
 
-* Vanilla HTML / CSS / JavaScript
+* Vanilla JS
 * No framework dependencies
 * Uses:
 
@@ -48,8 +48,6 @@ This project is designed for power users who want to:
 
 ```text
 /
-├── index.html          # App layout
-├── styles.css          # UI styling
 ├── app.js              # Core logic
 │
 └── api/
