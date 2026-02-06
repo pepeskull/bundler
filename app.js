@@ -374,8 +374,10 @@ function parseSecretKey(secret) {
   }
 
   function formatQuote(n) {
-    if (!n) return "--";
-    if (n < 1_000) return Math.floor(n).toString();
+    if (n === null || n === undefined) return "--";
+    if (n <= 0) return "0";
+    if (n < 1) return n.toFixed(6);
+    if (n < 1_000) return n.toFixed(4);
     if (n < 1_000_000) return Math.floor(n / 1_000) + "k";
     return (n / 1_000_000).toFixed(2) + "M";
   }
