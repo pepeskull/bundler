@@ -809,4 +809,13 @@ div#access-timer {
     font-size: 13px;
     cursor: context-menu;
     font-family: courier;
+    animation-name:glow;
+  animation-duration:2s;
+  animation-iteration-count:infinite;
+  animation-direction:alternate;
+}
+
+@keyframes glow{
+  from{text-shadow:0px 0px 1px #86efac,0px 0px 5px #232e29;}
+  to{text-shadow:0px 0px 8px #86efac,0px 0px 20px #232e29;}
 }
