@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
 const accessPage = document.getElementById("access-page");
 const bundlePage = document.getElementById("bundle-page");
 const accessTimer = document.getElementById("access-timer");
-const ACCESS_DURATION_MS = 30 * 60 * 1000;
+const ACCESS_DURATION_MS = 60 * 60 * 1000;
 let accessTimerInterval = null;
 
 function formatTimer(msRemaining) {
@@ -1025,6 +1025,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
