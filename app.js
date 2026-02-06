@@ -394,7 +394,7 @@ function updateTotalCost() {
     totalLabel.textContent = "Total";
     totalCost.textContent = `${total.toFixed(4)} ${currentSymbol || "TOKEN"}`;
   } else {
-    totalLabel.textContent = "Total Cost";
+    totalLabel.textContent = "Total";
     totalCost.textContent = `${total.toFixed(4)} SOL`;
   }
 
@@ -1146,3 +1146,4 @@ wallets.push({
 
 setTradeMode("buy");
 });
+
