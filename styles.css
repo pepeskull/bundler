@@ -215,7 +215,7 @@ button {
     align-items: center;
     gap: 0.5rem;
     justify-content: center;
-    border: 0px solid #0c0c0c;
+    border: 1px solid #0c0c0c;
     font-family: monospace;
 }
 
@@ -901,3 +901,4 @@ button#buyBtn:disabled {
     justify-content: center !important;
     border: 1px solid #202124 !important;
 }
+
