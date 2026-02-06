@@ -885,3 +885,19 @@ button#sellspl:disabled {
     justify-content: center;
     border: 1px solid #202124;
 }
+
+button#buyBtn:disabled {
+    opacity: .5 !important;
+    cursor: auto !important;
+    background-color: #18191b !important;
+    color: #ffffff !important;
+    font-size: 14px !important;
+    font-weight: 100 !important;
+    border-radius: 8px !important;
+    transition: background-color 0.2s !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    justify-content: center !important;
+    border: 1px solid #202124 !important;
+}
