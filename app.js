@@ -284,8 +284,6 @@ function parseSecretKey(secret) {
 
   /* ================= HELPERS ================= */
 
-  const JUPITER_API_BASE = "https://quote-api.jup.ag/v6";
-
   function formatQuote(n) {
     if (!n) return "--";
     if (n < 1_000) return Math.floor(n).toString();
@@ -318,14 +316,6 @@ function updateTotalCost() {
 
   const activeWalletEl = document.getElementById("activeWallet");
   const walletStackEl = document.getElementById("walletStack");
-  const warningText = document.getElementById("warning-text");
-
-  const defaultWarningText = warningText?.textContent || "";
-
-  function setWarning(text) {
-    if (!warningText) return;
-    warningText.textContent = text || defaultWarningText;
-  }
 
   /* ================= TX MODAL ================= */
 
@@ -442,33 +432,17 @@ mintInput.addEventListener("input", () => {
   }, 400);
 });
 
- async function getQuote(solAmount) {
+  async function getQuote(solAmount) {
     if (!tokenDecimals || solAmount <= 0) return null;
     const lamports = Math.floor(solAmount * 1e9);
-    const url = `${JUPITER_API_BASE}/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=300&swapMode=ExactIn`;
 
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        const err = await response.json().catch(() => null);
-        console.warn("JUPITER QUOTE ERROR:", err || response.statusText);
-        setWarning("No route available for this token yet.");
-        return null;
-      }
+    const q = await fetch(
+      `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=300`
+    ).then(r => r.json());
 
-      const q = await response.json();
-      if (!q?.outAmount) {
-        setWarning("No route available for this token yet.");
-        return null;
-      }
-
-      setWarning("");
-      return Number(q.outAmount) / 10 ** tokenDecimals;
-    } catch (err) {
-      console.error("JUPITER QUOTE ERROR:", err);
-      setWarning("Unable to fetch a quote right now.");
-      return null;
-    }
+    return q?.outAmount
+      ? Number(q.outAmount) / 10 ** tokenDecimals
+      : null;
   }
 
   function refreshActiveQuote() {
@@ -490,17 +464,9 @@ async function executeSwap(secretKey, solAmount) {
   const kp = solanaWeb3.Keypair.fromSecretKey(secretKey);
 
   // 1️⃣ Get quote
-  const quoteResponse = await fetch(
-    `${JUPITER_API_BASE}/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=300&swapMode=ExactIn`
-  );
-
-  if (!quoteResponse.ok) {
-    const err = await quoteResponse.json().catch(() => null);
-    console.error("JUPITER QUOTE ERROR:", err || quoteResponse.statusText);
-    throw new Error(err?.error || "Quote failed");
-  }
-
-  const quote = await quoteResponse.json();
+  const quote = await fetch(
+    `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=300`
+  ).then(r => r.json());
 
   if (!quote || quote.error) {
     console.error("JUPITER QUOTE ERROR:", quote);
@@ -508,7 +474,7 @@ async function executeSwap(secretKey, solAmount) {
   }
 
   // 2️⃣ Request swap transaction
-  const swap = await fetch(`${JUPITER_API_BASE}/swap`, {
+  const swap = await fetch("https://lite-api.jup.ag/swap/v1/swap", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -854,17 +820,3 @@ wallets.push({
 render();
 updateTotalCost();
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
