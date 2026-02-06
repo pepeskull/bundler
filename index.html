@@ -44,6 +44,7 @@
     <nav class="header-menu">
       <button class="menu-btn">Github</button>
       <button class="menu-btn">Twitter</button>
+      <div id="access-timer" class="menu-btn" hidden>30:00</div>
     </nav>
   </div>
 </header>
@@ -108,7 +109,11 @@
 
   <!-- ================= BUNDLE PAGE ================= -->
 
-  <div id="bundle-page" class="page hidden">
+  <div id="bundle-page" class="page hidden" hidden>
+    <div class="options">
+      <button id="buyspl" class="primary">Bundle Token</button>
+      <button id="sellspl" class="primary">Sell Bundle</button>
+    </div>
 
     <!-- TOKEN INFO -->
     <div class="token-row">
@@ -150,7 +155,7 @@
 
     <footer class="footer">
       <button id="buyBtn" class="primary" style="width: 20%;">Buy Bundle</button>
-      <p>Total Cost: <span id="totalCost">0.0000 SOL</span></p>
+      <p><span id="totalLabel">Total Cost</span>: <span id="totalCost">0.0000 SOL</span></p>
     </footer>
 
     <section class="warning">
