@@ -122,7 +122,7 @@ function enforceAccess() {
 
 /* ================= PAYMENT CONFIG ================= */
 
-const REQUIRED_SOL = 0.05; // testing value
+const REQUIRED_SOL = 0.001; // testing value
 
 const qrCanvas = document.getElementById("qr-canvas");
 const addressInput = document.getElementById("receive-address");
@@ -1025,6 +1025,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
