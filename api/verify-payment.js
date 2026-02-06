@@ -19,7 +19,7 @@ import { Redis } from "@upstash/redis";
 import bs58 from "bs58";
 import fetch from "node-fetch";
 
-const REQUIRED_SOL = 0.001;
+const REQUIRED_SOL = 0.05;
 const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL,
   token: process.env.UPSTASH_REDIS_REST_TOKEN
