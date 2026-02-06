@@ -33,11 +33,17 @@ const bundlePage = document.getElementById("bundle-page");
 function showAccess() {
   accessPage.classList.remove("hidden");
   bundlePage.classList.add("hidden");
+  accessPage.removeAttribute("hidden");
+  bundlePage.setAttribute("hidden", "");
+  bundlePage.setAttribute("inert", "");
 }
 
 function showBundle() {
   accessPage.classList.add("hidden");
   bundlePage.classList.remove("hidden");
+  accessPage.setAttribute("hidden", "");
+  bundlePage.removeAttribute("hidden");
+  bundlePage.removeAttribute("inert");
 }
 
 /* ================= ACCESS GUARD ================= */
@@ -814,6 +820,7 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
 
