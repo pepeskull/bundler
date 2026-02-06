@@ -431,6 +431,7 @@ function updateTotalCost() {
     if (buyToggleBtn) buyToggleBtn.disabled = mode === "buy";
     if (sellToggleBtn) sellToggleBtn.disabled = mode === "sell";
     buyBtn.textContent = mode === "sell" ? "Sell Bundle" : "Buy Bundle";
+    buyBtn.style.background = mode === "sell" ? "#ef8686" : "";
     wallets.forEach(w => {
       w.quote = "";
       w.balance = "Balance: ";
@@ -1146,4 +1147,5 @@ wallets.push({
 
 setTradeMode("buy");
 });
+
 
