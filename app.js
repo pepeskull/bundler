@@ -284,6 +284,27 @@ function parseSecretKey(secret) {
 
   /* ================= HELPERS ================= */
 
+  const JUPITER_API_BASES = [
+    "https://quote-api.jup.ag/v6",
+    "https://lite-api.jup.ag/swap/v1"
+  ];
+  const ULTRA_ORDER_ENDPOINT = "/api/ultra-order";
+  const ULTRA_EXECUTE_ENDPOINT = "/api/ultra-execute";
+
+  function buildQuoteUrl(base, inputMint, outputMint, amountLamports) {
+    if (base.includes("/swap/v1")) {
+      return `${base}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountLamports}&slippageBps=300`;
+    }
+    return `${base}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountLamports}&slippageBps=300&swapMode=ExactIn`;
+  }
+
+  function buildSwapUrl(base) {
+    if (base.includes("/swap/v1")) {
+      return `${base}/swap`;
+    }
+    return `${base}/swap`;
+  }
+
   function formatQuote(n) {
     if (!n) return "--";
     if (n < 1_000) return Math.floor(n).toString();
@@ -316,6 +337,14 @@ function updateTotalCost() {
 
   const activeWalletEl = document.getElementById("activeWallet");
   const walletStackEl = document.getElementById("walletStack");
+  const warningText = document.getElementById("warning-text");
+
+  const defaultWarningText = warningText?.textContent || "";
+
+  function setWarning(text) {
+    if (!warningText) return;
+    warningText.textContent = text || defaultWarningText;
+  }
 
   /* ================= TX MODAL ================= */
 
@@ -432,17 +461,51 @@ mintInput.addEventListener("input", () => {
   }, 400);
 });
 
-  async function getQuote(solAmount) {
+   async function getQuote(solAmount) {
     if (!tokenDecimals || solAmount <= 0) return null;
     const lamports = Math.floor(solAmount * 1e9);
+    const inputMint = "So11111111111111111111111111111111111111112";
+    const outputMint = mintInput.value;
 
-    const q = await fetch(
-      `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=300`
-    ).then(r => r.json());
+    try {
+      const ultraUrl = `${ULTRA_ORDER_ENDPOINT}?inputMint=${inputMint}&outputMint=${outputMint}&amount=${lamports}`;
+      const ultraResponse = await fetch(ultraUrl);
+      if (ultraResponse.ok) {
+        const ultra = await ultraResponse.json();
+        if (ultra?.outAmount) {
+          setWarning("");
+          return Number(ultra.outAmount) / 10 ** tokenDecimals;
+        }
+      }
+    } catch (err) {
+      console.warn("ULTRA QUOTE ERROR:", err);
+    }
 
-    return q?.outAmount
-      ? Number(q.outAmount) / 10 ** tokenDecimals
-      : null;
+    for (const base of JUPITER_API_BASES) {
+      const url = buildQuoteUrl(base, inputMint, outputMint, lamports);
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          const err = await response.json().catch(() => null);
+          console.warn("JUPITER QUOTE ERROR:", err || response.statusText);
+          continue;
+        }
+
+        const q = await response.json();
+        if (!q?.outAmount) {
+          continue;
+        }
+
+        setWarning("");
+        return Number(q.outAmount) / 10 ** tokenDecimals;
+      } catch (err) {
+        console.error("JUPITER QUOTE ERROR:", err);
+      }
+    }
+
+    setWarning("Unable to fetch a quote right now.");
+    return null;
   }
 
   function refreshActiveQuote() {
@@ -463,10 +526,89 @@ async function executeSwap(secretKey, solAmount) {
   const lamports = Math.floor(solAmount * 1e9);
   const kp = solanaWeb3.Keypair.fromSecretKey(secretKey);
 
+  try {
+    const ultraUrl = `${ULTRA_ORDER_ENDPOINT}?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&taker=${kp.publicKey.toBase58()}`;
+    const ultraResponse = await fetch(ultraUrl);
+
+    if (!ultraResponse.ok) {
+      const err = await ultraResponse.json().catch(() => null);
+      throw new Error(err?.error || "Ultra order failed");
+    }
+
+    const ultraOrder = await ultraResponse.json();
+    if (!ultraOrder?.transaction || !ultraOrder?.requestId) {
+      throw new Error("Ultra order missing transaction");
+    }
+
+    const tx = solanaWeb3.VersionedTransaction.deserialize(
+      Uint8Array.from(
+        atob(ultraOrder.transaction),
+        c => c.charCodeAt(0)
+      )
+    );
+
+    tx.sign([kp]);
+
+    const signedTxBase64 = btoa(
+      String.fromCharCode(...tx.serialize())
+    );
+
+    const executeResponse = await fetch(ULTRA_EXECUTE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        signedTransaction: signedTxBase64,
+        requestId: ultraOrder.requestId
+      })
+    });
+
+    if (!executeResponse.ok) {
+      const err = await executeResponse.json().catch(() => null);
+      throw new Error(err?.error || "Ultra execute failed");
+    }
+
+    const execute = await executeResponse.json();
+    if (execute?.status !== "Success" || !execute?.signature) {
+      throw new Error(execute?.error || "Ultra execution failed");
+    }
+
+    return execute.signature;
+  } catch (err) {
+    console.warn("ULTRA SWAP FAILED:", err);
+  }
+
   // 1️⃣ Get quote
-  const quote = await fetch(
-    `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&slippageBps=300`
-  ).then(r => r.json());
+  const inputMint = "So11111111111111111111111111111111111111112";
+  const outputMint = mintInput.value;
+  let quote = null;
+  let lastError = null;
+  let quoteBase = JUPITER_API_BASES[0];
+
+  for (const base of JUPITER_API_BASES) {
+    const url = buildQuoteUrl(base, inputMint, outputMint, lamports);
+    try {
+      const quoteResponse = await fetch(url);
+      if (!quoteResponse.ok) {
+        const err = await quoteResponse.json().catch(() => null);
+        lastError = err || quoteResponse.statusText;
+        console.error("JUPITER QUOTE ERROR:", lastError);
+        continue;
+      }
+
+      quote = await quoteResponse.json();
+      if (quote?.outAmount) {
+        quoteBase = base;
+        break;
+      }
+    } catch (err) {
+      lastError = err;
+      console.error("JUPITER QUOTE ERROR:", err);
+    }
+  }
+
+  if (!quote?.outAmount) {
+    throw new Error(lastError?.error || "Quote failed");
+  }
 
   if (!quote || quote.error) {
     console.error("JUPITER QUOTE ERROR:", quote);
@@ -474,7 +616,7 @@ async function executeSwap(secretKey, solAmount) {
   }
 
   // 2️⃣ Request swap transaction
-  const swap = await fetch("https://lite-api.jup.ag/swap/v1/swap", {
+   const swap = await fetch(buildSwapUrl(quoteBase), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -820,3 +962,4 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
