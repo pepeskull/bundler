@@ -29,6 +29,56 @@ document.addEventListener("DOMContentLoaded", () => {
 
 const accessPage = document.getElementById("access-page");
 const bundlePage = document.getElementById("bundle-page");
+const accessTimer = document.getElementById("access-timer");
+const ACCESS_DURATION_MS = 30 * 60 * 1000;
+let accessTimerInterval = null;
+
+function formatTimer(msRemaining) {
+  const totalSeconds = Math.max(0, Math.floor(msRemaining / 1000));
+  const minutes = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function clearAccessTimer() {
+  if (accessTimerInterval) {
+    clearInterval(accessTimerInterval);
+    accessTimerInterval = null;
+  }
+}
+
+function startAccessTimer() {
+  if (!accessTimer) return;
+
+  if (!sessionStorage.getItem("accessGrantedAt")) {
+    sessionStorage.setItem("accessGrantedAt", Date.now().toString());
+  }
+
+  accessTimer.removeAttribute("hidden");
+  clearAccessTimer();
+
+  const tick = () => {
+    const startedAt = Number(sessionStorage.getItem("accessGrantedAt"));
+    const elapsed = Date.now() - startedAt;
+    const remaining = ACCESS_DURATION_MS - elapsed;
+
+    if (remaining <= 0) {
+      sessionStorage.removeItem("accessToken");
+      sessionStorage.removeItem("accessGrantedAt");
+      accessTimer.setAttribute("hidden", "");
+      clearAccessTimer();
+      showAccess();
+      return;
+    }
+
+    accessTimer.textContent = formatTimer(remaining);
+  };
+
+  tick();
+  accessTimerInterval = setInterval(tick, 1000);
+}
 
 function showAccess() {
   accessPage.classList.remove("hidden");
@@ -36,6 +86,10 @@ function showAccess() {
   accessPage.removeAttribute("hidden");
   bundlePage.setAttribute("hidden", "");
   bundlePage.setAttribute("inert", "");
+  if (accessTimer) {
+    accessTimer.setAttribute("hidden", "");
+  }
+  clearAccessTimer();
 }
 
 function showBundle() {
@@ -44,13 +98,21 @@ function showBundle() {
   accessPage.setAttribute("hidden", "");
   bundlePage.removeAttribute("hidden");
   bundlePage.removeAttribute("inert");
+  startAccessTimer();
 }
 
 /* ================= ACCESS GUARD ================= */
 
 function enforceAccess() {
   const hasAccess = sessionStorage.getItem("accessToken");
-  if (!hasAccess) {
+  const accessGrantedAt = Number(sessionStorage.getItem("accessGrantedAt"));
+  const accessExpired = accessGrantedAt
+    ? Date.now() - accessGrantedAt > ACCESS_DURATION_MS
+    : false;
+
+  if (!hasAccess || accessExpired) {
+    sessionStorage.removeItem("accessToken");
+    sessionStorage.removeItem("accessGrantedAt");
     showAccess();
     return false;
   }
@@ -163,6 +225,7 @@ async function verifyPaymentOnce() {
 
     // Grant access
     sessionStorage.setItem("accessToken", j.access || "ok");
+    sessionStorage.setItem("accessGrantedAt", Date.now().toString());
 
     // Step 3 → 4
     setTimeout(() => {
@@ -962,5 +1025,6 @@ wallets.push({
 render();
 updateTotalCost();
 });
+
 
 
