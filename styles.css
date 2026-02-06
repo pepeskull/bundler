@@ -825,3 +825,63 @@ div#access-timer {
     gap: 5px;
     margin-bottom: 24px;
 }
+
+button#buyspl:disabled {
+    opacity: .5;
+    background-color: #18191b;
+    color: #86efac;
+    font-size: 14px;
+    font-weight: 100;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+    border: 1px solid #202124;
+}
+
+button#buyspl {
+    opacity: .5;
+    background-color: #18191b;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 100;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+    border: 1px solid #202124;
+}
+
+button#sellspl {
+    opacity: .5;
+    background-color: #18191b;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 100;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+    border: 1px solid #202124;
+}
+
+button#sellspl:disabled {
+    opacity: .5;
+    background-color: #18191b;
+    color: #ef8686;
+    font-size: 14px;
+    font-weight: 100;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+    border: 1px solid #202124;
+}
