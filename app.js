@@ -30,8 +30,13 @@ document.addEventListener("DOMContentLoaded", () => {
 const accessPage = document.getElementById("access-page");
 const bundlePage = document.getElementById("bundle-page");
 const accessTimer = document.getElementById("access-timer");
-const ACCESS_DURATION_MS = 60 * 60 * 1000;
+const ACCESS_DURATION_MS = 5000 * 60 * 1000;
 let accessTimerInterval = null;
+const SOL_MINT = "So11111111111111111111111111111111111111112";
+const SOL_DECIMALS = 9;
+
+let tradeMode = "buy";
+let currentSymbol = "TOKEN";
 
 function formatTimer(msRemaining) {
   const totalSeconds = Math.max(0, Math.floor(msRemaining / 1000));
@@ -383,7 +388,14 @@ function updateTotalCost() {
     0
   );
 
-  totalCost.textContent = total.toFixed(4) + " SOL";
+  if (tradeMode === "sell") {
+    totalLabel.textContent = "Total";
+    totalCost.textContent = `${total.toFixed(4)} ${currentSymbol || "TOKEN"}`;
+  } else {
+    totalLabel.textContent = "Total Cost";
+    totalCost.textContent = `${total.toFixed(4)} SOL`;
+  }
+
   buyBtn.disabled = total <= 0;
 }
 
@@ -393,6 +405,9 @@ function updateTotalCost() {
   const walletCount = document.getElementById("walletCount");
   const buyBtn = document.getElementById("buyBtn");
   const totalCost = document.getElementById("totalCost");
+  const totalLabel = document.getElementById("totalLabel");
+  const buyToggleBtn = document.getElementById("buyspl");
+  const sellToggleBtn = document.getElementById("sellspl");
 
   const mintInput = document.getElementById("mintAddress");
   const tickerBadge = document.getElementById("tickerBadge");
@@ -407,6 +422,21 @@ function updateTotalCost() {
   function setWarning(text) {
     if (!warningText) return;
     warningText.textContent = text || defaultWarningText;
+  }
+
+  function setTradeMode(mode) {
+    tradeMode = mode;
+    if (buyToggleBtn) buyToggleBtn.disabled = mode === "buy";
+    if (sellToggleBtn) sellToggleBtn.disabled = mode === "sell";
+    buyBtn.textContent = mode === "sell" ? "Sell Bundle" : "Buy Bundle";
+    wallets.forEach(w => {
+      w.quote = "";
+      w.balance = "Balance: ";
+    });
+    render();
+    updateTotalCost();
+    refreshActiveQuote();
+    refreshWalletBalances();
   }
 
   /* ================= TX MODAL ================= */
@@ -497,7 +527,8 @@ mintInput.addEventListener("input", () => {
     const j = await r.json();
     if (!j.ok) return;
 
-    tickerBadge.textContent = j.symbol || "—";
+    currentSymbol = j.symbol || "TOKEN";
+    tickerBadge.textContent = currentSymbol || "—";
     tokenDecimals = j.decimals ?? null;
 
     // --- SAFE LOGO HANDLING ---
@@ -521,23 +552,30 @@ mintInput.addEventListener("input", () => {
     }
 
     refreshActiveQuote();
+    updateTotalCost();
+    refreshWalletBalances();
   }, 400);
 });
 
-   async function getQuote(solAmount) {
-    if (!tokenDecimals || solAmount <= 0) return null;
-    const lamports = Math.floor(solAmount * 1e9);
-    const inputMint = "So11111111111111111111111111111111111111112";
-    const outputMint = mintInput.value;
+  async function getQuote(inputAmount) {
+    if (!tokenDecimals || Number(inputAmount) <= 0) return null;
+    if (!mintInput.value) return null;
+
+    const amountBase = tradeMode === "sell"
+      ? Math.floor(Number(inputAmount) * 10 ** tokenDecimals)
+      : Math.floor(Number(inputAmount) * 10 ** SOL_DECIMALS);
+    const inputMint = tradeMode === "sell" ? mintInput.value : SOL_MINT;
+    const outputMint = tradeMode === "sell" ? SOL_MINT : mintInput.value;
+    const outputDecimals = tradeMode === "sell" ? SOL_DECIMALS : tokenDecimals;
 
     try {
-      const ultraUrl = `${ULTRA_ORDER_ENDPOINT}?inputMint=${inputMint}&outputMint=${outputMint}&amount=${lamports}`;
+      const ultraUrl = `${ULTRA_ORDER_ENDPOINT}?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountBase}`;
       const ultraResponse = await fetch(ultraUrl);
       if (ultraResponse.ok) {
         const ultra = await ultraResponse.json();
         if (ultra?.outAmount) {
           setWarning("");
-          return Number(ultra.outAmount) / 10 ** tokenDecimals;
+          return Number(ultra.outAmount) / 10 ** outputDecimals;
         }
       }
     } catch (err) {
@@ -545,7 +583,7 @@ mintInput.addEventListener("input", () => {
     }
 
     for (const base of JUPITER_API_BASES) {
-      const url = buildQuoteUrl(base, inputMint, outputMint, lamports);
+      const url = buildQuoteUrl(base, inputMint, outputMint, amountBase);
 
       try {
         const response = await fetch(url);
@@ -561,7 +599,7 @@ mintInput.addEventListener("input", () => {
         }
 
         setWarning("");
-        return Number(q.outAmount) / 10 ** tokenDecimals;
+        return Number(q.outAmount) / 10 ** outputDecimals;
       } catch (err) {
         console.error("JUPITER QUOTE ERROR:", err);
       }
@@ -585,12 +623,17 @@ mintInput.addEventListener("input", () => {
 
   /* ================= EXECUTE SWAP ================= */
 
-async function executeSwap(secretKey, solAmount) {
-  const lamports = Math.floor(solAmount * 1e9);
+async function executeSwap(secretKey, inputAmount) {
+  const lamports = Math.floor(Number(inputAmount) * 1e9);
   const kp = solanaWeb3.Keypair.fromSecretKey(secretKey);
 
   try {
-    const ultraUrl = `${ULTRA_ORDER_ENDPOINT}?inputMint=So11111111111111111111111111111111111111112&outputMint=${mintInput.value}&amount=${lamports}&taker=${kp.publicKey.toBase58()}`;
+    const amountBase = tradeMode === "sell"
+      ? Math.floor(Number(inputAmount) * 10 ** tokenDecimals)
+      : Math.floor(Number(inputAmount) * 10 ** SOL_DECIMALS);
+    const inputMint = tradeMode === "sell" ? mintInput.value : SOL_MINT;
+    const outputMint = tradeMode === "sell" ? SOL_MINT : mintInput.value;
+    const ultraUrl = `${ULTRA_ORDER_ENDPOINT}?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountBase}&taker=${kp.publicKey.toBase58()}`;
     const ultraResponse = await fetch(ultraUrl);
 
     if (!ultraResponse.ok) {
@@ -641,14 +684,17 @@ async function executeSwap(secretKey, solAmount) {
   }
 
   // 1️⃣ Get quote
-  const inputMint = "So11111111111111111111111111111111111111112";
-  const outputMint = mintInput.value;
+  const inputMint = tradeMode === "sell" ? mintInput.value : SOL_MINT;
+  const outputMint = tradeMode === "sell" ? SOL_MINT : mintInput.value;
+  const amountBase = tradeMode === "sell"
+    ? Math.floor(Number(inputAmount) * 10 ** tokenDecimals)
+    : Math.floor(Number(inputAmount) * 10 ** SOL_DECIMALS);
   let quote = null;
   let lastError = null;
   let quoteBase = JUPITER_API_BASES[0];
 
   for (const base of JUPITER_API_BASES) {
-    const url = buildQuoteUrl(base, inputMint, outputMint, lamports);
+    const url = buildQuoteUrl(base, inputMint, outputMint, amountBase);
     try {
       const quoteResponse = await fetch(url);
       if (!quoteResponse.ok) {
@@ -679,7 +725,7 @@ async function executeSwap(secretKey, solAmount) {
   }
 
   // 2️⃣ Request swap transaction
-   const swap = await fetch(buildSwapUrl(quoteBase), {
+  const swap = await fetch(buildSwapUrl(quoteBase), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -739,6 +785,43 @@ async function fetchSolBalance(pubkey) {
   return j.lamports / 1e9;
 }
 
+async function fetchTokenBalance(owner, mint) {
+  const r = await fetch(`/api/token-balance?owner=${owner}&mint=${mint}`);
+  const j = await r.json();
+
+  if (!j || typeof j.amount !== "number") {
+    throw new Error("Invalid token balance response");
+  }
+
+  return j.amount;
+}
+
+async function refreshWalletBalances() {
+  const updates = wallets.map(async w => {
+    if (!w.sk) return;
+    const kp = solanaWeb3.Keypair.fromSecretKey(w.sk);
+    const owner = kp.publicKey.toBase58();
+
+    if (tradeMode === "sell") {
+      if (!mintInput.value || !tokenDecimals) {
+        w.balance = "Balance: Set a mint first";
+        return;
+      }
+      const tokenBalance = await fetchTokenBalance(owner, mintInput.value);
+      w.balanceToken = tokenBalance;
+      w.balance = `Balance: ${tokenBalance.toFixed(4)} ${currentSymbol || "TOKEN"}`;
+      return;
+    }
+
+    const sol = await fetchSolBalance(owner);
+    w.balanceSol = sol;
+    w.balance = `Balance: ${sol.toFixed(4)} SOL`;
+  });
+
+  await Promise.all(updates);
+  render();
+}
+
   /* ================= RENDER ================= */
 
   function render({ stackOnly = false } = {}) {
@@ -778,7 +861,7 @@ async function fetchSolBalance(pubkey) {
 
     pk.onblur = async () => {
     const value = pk.value.trim();
-  
+
     if (!value) {
       w.sk = null;
       w.secret = "";
@@ -786,17 +869,31 @@ async function fetchSolBalance(pubkey) {
       bal.textContent = w.balance;
       return;
     }
-  
+
     try {
       const sk = parseSecretKey(value);
       const kp = solanaWeb3.Keypair.fromSecretKey(sk);
-      const sol = await fetchSolBalance(kp.publicKey.toBase58());
-  
+      const owner = kp.publicKey.toBase58();
+
       w.secret = value;
       w.sk = sk;
-      w.balanceSol = sol;
-      w.balance = `Balance: ${sol.toFixed(4)} SOL`;
-  
+
+      if (tradeMode === "sell") {
+        if (!mintInput.value || !tokenDecimals) {
+          w.balance = "Balance: Set a mint first";
+          bal.textContent = w.balance;
+          return;
+        }
+
+        const tokenBalance = await fetchTokenBalance(owner, mintInput.value);
+        w.balanceToken = tokenBalance;
+        w.balance = `Balance: ${tokenBalance.toFixed(4)} ${currentSymbol || "TOKEN"}`;
+      } else {
+        const sol = await fetchSolBalance(owner);
+        w.balanceSol = sol;
+        w.balance = `Balance: ${sol.toFixed(4)} SOL`;
+      }
+
       bal.textContent = w.balance;
     } catch (err) {
       console.error("Invalid private key:", err);
@@ -837,7 +934,7 @@ function renderStack() {
         </div>
 
         <div class="stack-wallet-meta">
-          ${w.sol ? `${Number(w.sol).toFixed(4)} SOL` : "--"}
+          ${w.sol ? `${Number(w.sol).toFixed(4)} ${tradeMode === "sell" ? (currentSymbol || "TOKEN") : "SOL"}` : "--"}
           ${w.quote ? `→ ${w.quote}` : ""}
         </div>
 
@@ -939,6 +1036,11 @@ function deleteWallet(index) {
 const MIN_SOL_BUFFER = 0.0005; // required for ATA + fees + safety
 
 buyBtn.onclick = async () => {
+  if (tradeMode === "sell" && (!mintInput.value || !tokenDecimals)) {
+    setWarning("Set a token mint before selling.");
+    return;
+  }
+
   const stackWallets = wallets.slice(0, wallets.length - 1);
   const activeWallet = wallets[wallets.length - 1];
 
@@ -953,8 +1055,18 @@ buyBtn.onclick = async () => {
   if (!executionList.length) return;
 
   executionList.forEach((w, i) => {
-    // Deterministic failure: insufficient SOL
-    if (
+    // Deterministic failure: insufficient balance
+    if (tradeMode === "sell") {
+      if (
+        typeof w.balanceToken === "number" &&
+        w.balanceToken < Number(w.sol)
+      ) {
+        if (typeof setTxStatus === "function") {
+          setTxStatus(i, "failed", null, "Insufficient token");
+        }
+        return;
+      }
+    } else if (
       typeof w.balanceSol === "number" &&
       w.balanceSol < Number(w.sol) + MIN_SOL_BUFFER
     ) {
@@ -1010,6 +1122,14 @@ addWalletBtn.onclick = () => {
   render();
 };
 
+if (buyToggleBtn) {
+  buyToggleBtn.onclick = () => setTradeMode("buy");
+}
+
+if (sellToggleBtn) {
+  sellToggleBtn.onclick = () => setTradeMode("sell");
+}
+
 /* ================= INIT ================= */
 
 wallets.push({
@@ -1022,13 +1142,5 @@ wallets.push({
   balance: "Balance: "
 });
 
-render();
-updateTotalCost();
+setTradeMode("buy");
 });
-
-
-
-
-
-
-
