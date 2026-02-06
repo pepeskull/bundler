@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
 const accessPage = document.getElementById("access-page");
 const bundlePage = document.getElementById("bundle-page");
 const accessTimer = document.getElementById("access-timer");
-const ACCESS_DURATION_MS = 5000 * 60 * 1000;
+const ACCESS_DURATION_MS = 60 * 60 * 1000;
 let accessTimerInterval = null;
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 const SOL_DECIMALS = 9;
@@ -1147,5 +1147,6 @@ wallets.push({
 
 setTradeMode("buy");
 });
+
 
 
