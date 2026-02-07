@@ -32,8 +32,8 @@ const bundlePage = document.getElementById("bundle-page");
 const accessTimer = document.getElementById("access-timer");
 const topupBanner = document.getElementById("topup-banner");
 const topupModal = document.getElementById("topupModal");
-const ACCESS_DURATION_MS = 30 * 60 * 1000;
-const TOPUP_THRESHOLD_MS = 3 * 60 * 1000;
+const ACCESS_DURATION_MS = 60 * 60 * 1000;
+const TOPUP_THRESHOLD_MS = 59 * 60 * 1000;
 let accessTimerInterval = null;
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 const SOL_DECIMALS = 9;
@@ -1274,3 +1274,4 @@ wallets.push({
 
 setTradeMode("buy");
 });
+
