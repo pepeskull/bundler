@@ -925,4 +925,5 @@ button#topup-close-btn {
     color: #ccc;
     background-color: #18191b;
     border: 1px solid #202124;
+    opacity: 0.5;
 }
