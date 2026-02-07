@@ -32,14 +32,15 @@ const bundlePage = document.getElementById("bundle-page");
 const accessTimer = document.getElementById("access-timer");
 const topupBanner = document.getElementById("topup-banner");
 const topupModal = document.getElementById("topupModal");
-const ACCESS_DURATION_MS = 60 * 60 * 1000;
-const TOPUP_THRESHOLD_MS = 59 * 60 * 1000;
+const ACCESS_DURATION_MS = 30 * 60 * 1000;
+const TOPUP_THRESHOLD_MS = 3 * 60 * 1000;
 let accessTimerInterval = null;
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 const SOL_DECIMALS = 9;
 
 let tradeMode = "buy";
 let currentSymbol = "TOKEN";
+let tokenSupply = null;
 
 function formatTimer(msRemaining) {
   const totalSeconds = Math.max(0, Math.floor(msRemaining / 1000));
@@ -486,20 +487,27 @@ function parseSecretKey(secret) {
   /* ================= TOTAL COST ================= */
 
 function updateTotalCost() {
-  const total = wallets.reduce(
+  const totalInput = wallets.reduce(
     (sum, w) => sum + (Number(w.sol) || 0),
+    0
+  );
+  const totalQuote = wallets.reduce(
+    (sum, w) => sum + (typeof w.quoteValue === "number" ? w.quoteValue : 0),
     0
   );
 
   if (tradeMode === "sell") {
     totalLabel.textContent = "Total";
-    totalCost.textContent = `${total.toFixed(4)} ${currentSymbol || "TOKEN"}`;
+    totalCost.textContent = `${totalQuote.toFixed(4)} SOL`;
   } else {
     totalLabel.textContent = "Total Cost";
-    totalCost.textContent = `${total.toFixed(4)} SOL`;
+    const percent = tokenSupply
+      ? (totalQuote / tokenSupply) * 100
+      : 0;
+    totalCost.textContent = `${percent.toFixed(4)}% ${currentSymbol || "TOKEN"}`;
   }
 
-  buyBtn.disabled = total <= 0;
+  buyBtn.disabled = totalInput <= 0;
 }
 
   /* ================= DOM ================= */
@@ -535,6 +543,7 @@ function updateTotalCost() {
     buyBtn.style.background = mode === "sell" ? "#ef8686" : "";
     wallets.forEach(w => {
       w.quote = "";
+      w.quoteValue = null;
       w.balance = "Balance: ";
     });
     render();
@@ -634,6 +643,7 @@ mintInput.addEventListener("input", () => {
     currentSymbol = j.symbol || "TOKEN";
     tickerBadge.textContent = currentSymbol || "—";
     tokenDecimals = j.decimals ?? null;
+    tokenSupply = await fetchTokenSupply(mintInput.value).catch(() => null);
 
     // --- SAFE LOGO HANDLING ---
     logoPreview.style.display = "none";
@@ -713,17 +723,19 @@ mintInput.addEventListener("input", () => {
     return null;
   }
 
-  function refreshActiveQuote() {
-    const w = wallets[activeWalletIndex];
-    if (!w || !w.sol) return;
+function refreshActiveQuote() {
+  const w = wallets[activeWalletIndex];
+  if (!w || !w.sol) return;
 
-    getQuote(Number(w.sol)).then(q => {
-      w.quote = formatQuote(q);
-      const el = activeWalletEl.querySelector("input[readonly]");
-      if (el) el.value = w.quote;
-      renderStack();
-    });
-  }
+  getQuote(Number(w.sol)).then(q => {
+    w.quoteValue = typeof q === "number" ? q : null;
+    w.quote = formatQuote(q);
+    const el = activeWalletEl.querySelector("input[readonly]");
+    if (el) el.value = w.quote;
+    renderStack();
+    updateTotalCost();
+  });
+}
 
   /* ================= EXECUTE SWAP ================= */
 
@@ -889,6 +901,17 @@ async function fetchSolBalance(pubkey) {
   return j.lamports / 1e9;
 }
 
+async function fetchTokenSupply(mint) {
+  const r = await fetch(`/api/token-supply?mint=${mint}`);
+  const j = await r.json();
+
+  if (!j || typeof j.supply !== "number") {
+    throw new Error("Invalid token supply response");
+  }
+
+  return j.supply;
+}
+
 async function fetchTokenBalance(owner, mint) {
   const r = await fetch(`/api/token-balance?owner=${owner}&mint=${mint}`);
   const j = await r.json();
@@ -1009,6 +1032,7 @@ async function refreshWalletBalances() {
 
     sol.oninput = () => {
       w.sol = sol.value;
+      w.quoteValue = null;
       updateTotalCost();
       refreshActiveQuote();
     };
@@ -1219,6 +1243,7 @@ addWalletBtn.onclick = () => {
     sk: null,
     sol: "",
     quote: "",
+    quoteValue: null,
     balance: "Balance: "
   });
 
@@ -1243,9 +1268,9 @@ wallets.push({
   sk: null,
   sol: "",
   quote: "",
+  quoteValue: null,
   balance: "Balance: "
 });
 
 setTradeMode("buy");
 });
-
