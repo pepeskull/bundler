@@ -208,9 +208,6 @@ function setButtonState(button, state) {
   }
 }
 
-// expose for console testing
-window.setContinueState = state => setButtonState(continueBtn, state);
-
 /* ================= CREATE PAYMENT ================= */
 
 async function createPayment({ canvas, addressField, button, setToken }) {
@@ -1274,5 +1271,6 @@ wallets.push({
 
 setTradeMode("buy");
 });
+
 
 
