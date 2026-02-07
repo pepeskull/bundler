@@ -42,7 +42,7 @@
 
     <!-- Menu -->
     <nav class="header-menu">
-      <button class="menu-btn" onclick="window.open('https://github.com/pepeskull/bundler', '_blank', 'noopener')">Github</button>
+      <button class="menu-btn">Github</button>
       <button class="menu-btn">Twitter</button>
       <div id="access-timer" class="menu-btn" hidden>30:00</div>
     </nav>
@@ -94,7 +94,7 @@
   </div>
   <div class="fee-row">
     <span class="fee-label">Platform Fee</span>
-    <span class="fee-value" id="platform-fee-sol">0.001 SOL</span>
+    <span class="fee-value" id="platform-fee-sol">0.05 SOL</span>
   </div>
   <button id="continue-btn" class="primary" style="width:100%;" disabled>Loading…</button>
   <div class="warning" style="margin-top:16px;">
@@ -102,7 +102,7 @@
             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></circle>
             <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line>
             <line x1="12" y1="16" x2="12.01" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line>
-             </svg> Deposit 0.001 SOL. Smaller deposits will not be credited.
+             </svg> Deposit 0.05 SOL. Smaller deposits will not be credited.
   </div>
 </section>
   </div>
@@ -110,6 +110,28 @@
   <!-- ================= BUNDLE PAGE ================= -->
 
   <div id="bundle-page" class="page hidden" hidden>
+    <div id="topup-banner" class="warning hidden">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        class="alert-icon"
+      >
+        <path
+          d="M12 22S5 18 5 12V6L12 3L19 6V12C19 18 12 22 12 22Z"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        ></path>
+      </svg>
+      <div>
+        <strong>Session ending soon.</strong> Extend access by topping up.
+      </div>
+      <button id="topup-btn" class="secondary">Top Up</button>
+    </div>
     <div class="options">
       <button id="buyspl" class="primary">Bundle Token</button>
       <button id="sellspl" class="primary">Sell Bundle</button>
@@ -155,7 +177,7 @@
 
     <footer class="footer">
       <button id="buyBtn" class="primary" style="width: 20%;">Buy Bundle</button>
-      <p><span id="totalLabel">Total</span>: <span id="totalCost">0.0000 SOL</span></p>
+      <p><span id="totalLabel">Total Cost</span>: <span id="totalCost">0.0000 SOL</span></p>
     </footer>
 
     <section class="warning">
@@ -191,6 +213,32 @@
       </div>
     </div>
 
+    <!-- TOP UP MODAL -->
+    <div id="topupModal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Extend Access</h3>
+        <canvas
+          id="topup-qr-canvas"
+          width="220"
+          height="220"
+          style="display:block;margin:20px auto;"
+        ></canvas>
+        <div class="address-label" style="margin-bottom: 12px;">
+          Single-Use Address
+        </div>
+        <div class="mint-input" style="margin-bottom: 24px;">
+          <input id="topup-receive-address" value="Generating..." readonly/>
+          <button id="topup-copy-receive-address" class="secondary" style="position:absolute;right:0;top:0;height: 100%;border-radius:0 8px 8px 0;max-width: 100px;font-size: 11px;">Copy</button>
+        </div>
+        <div class="fee-row">
+          <span class="fee-label">Top Up Fee</span>
+          <span class="fee-value" id="topup-fee-sol">0.05 SOL</span>
+        </div>
+        <button id="topup-continue-btn" class="primary" style="width:100%;" disabled>Loading…</button>
+        <button id="topup-close-btn" class="secondary" style="width:100%;margin-top:12px;">Cancel</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -204,6 +252,3 @@
 
 </body>
 </html>
-
-
-
