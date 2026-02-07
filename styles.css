@@ -215,7 +215,7 @@ button {
     align-items: center;
     gap: 0.5rem;
     justify-content: center;
-    border: 1px solid #0c0c0c;
+    border: 0px solid #0c0c0c;
     font-family: monospace;
 }
 
@@ -250,7 +250,7 @@ button {
   align-items: center;
   gap: 0.5rem;
   justify-content: center;
-  border: 1px solid #202124;
+  border: 0px solid #202124;
   font-family: monospace;
 }
 
@@ -830,7 +830,7 @@ div#access-timer {
 
 button#buyspl:disabled {
     opacity: .5;
-    background-color: #18191b;
+    background-color: #202124;
     color: #86efac;
     font-size: 14px;
     font-weight: 100;
@@ -875,7 +875,7 @@ button#sellspl {
 
 button#sellspl:disabled {
     opacity: .5;
-    background-color: #18191b;
+    background-color: #202124;
     color: #ef8686;
     font-size: 14px;
     font-weight: 100;
@@ -891,7 +891,7 @@ button#sellspl:disabled {
 button#buyBtn:disabled {
     opacity: .5 !important;
     cursor: auto !important;
-    background-color: #18191b !important;
+    background-color: #202124 !important;
     color: #ffffff !important;
     font-size: 14px !important;
     font-weight: 100 !important;
@@ -901,7 +901,7 @@ button#buyBtn:disabled {
     align-items: center !important;
     gap: 0.5rem !important;
     justify-content: center !important;
-    border: 1px solid #202124 !important;
+    border: 0px solid #202124 !important;
 }
 
 button#topup-btn {
@@ -926,4 +926,150 @@ button#topup-close-btn {
     background-color: #18191b;
     border: 1px solid #202124;
     opacity: 0.5;
+}
+
+div#bundle-page {
+    padding: 24px;
+    margin-bottom: 20px;
+    background-color: #18191b;
+    border: 1px solid #202124;
+    border-radius: 16px;
+}
+
+dot {
+    color: #86efac;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ================================
+   RESPONSIVE LAYOUTS
+================================ */
+
+.options {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+#topup-banner {
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 1024px) {
+  .app {
+    max-width: 100%;
+    padding: 16px;
+  }
+
+  .header-inner {
+    padding: 12px 16px;
+  }
+
+  .wallet-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .wallet-stack-wrapper {
+    max-height: none;
+  }
+
+  .token-row {
+    grid-template-columns: 1fr;
+  }
+
+  .logo-card {
+    min-height: 140px;
+  }
+
+  .stack-wallet-content {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .header-menu {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .menu-btn {
+    padding: 6px 10px;
+  }
+
+  .options {
+    flex-direction: column;
+  }
+
+  .footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .amount-row {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-content {
+    margin: 0 16px 16px;
+    padding: 20px;
+  }
+
+  .stack-item {
+    height: auto;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 16px;
+  }
+
+  .primary,
+  .secondary {
+    padding: 16px;
+    font-size: 13px;
+  }
+
+  input {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+
+  #tickerBadge,
+  button#copy-receive-address {
+    width: 80px;
+    font-size: 10px;
+  }
+
+  .wallet-stack-wrapper {
+    padding-right: 0;
+  }
+
+  canvas#qr-canvas,
+  #topup-qr-canvas {
+    width: 160px !important;
+    height: 160px !important;
+  }
+
+  .warning {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  #topup-banner {
+    gap: 10px;
+  }
 }
