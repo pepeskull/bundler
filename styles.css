@@ -846,7 +846,7 @@ button#buyspl:disabled {
 button#buyspl {
     opacity: .5;
     background-color: #18191b;
-    color: #fff;
+    color: #ccc;
     font-size: 14px;
     font-weight: 100;
     border-radius: 8px;
@@ -860,8 +860,6 @@ button#buyspl {
 
 button#sellspl {
     opacity: .5;
-    background-color: #18191b;
-    color: #fff;
     font-size: 14px;
     font-weight: 100;
     border-radius: 8px;
@@ -870,6 +868,8 @@ button#sellspl {
     align-items: center;
     gap: 0.5rem;
     justify-content: center;
+    color: #ccc;
+    background-color: #18191b;
     border: 1px solid #202124;
 }
 
@@ -909,3 +909,20 @@ button#topup-btn {
     margin-left: auto;
 }
 
+canvas#topup-qr-canvas {
+    border-radius: 16px;
+    height: 180px !important;
+    width: 180px !important;
+}
+
+button#topup-copy-receive-address {
+    background-color: #202124;
+    color: #fff;
+    border: 0px solid;
+}
+
+button#topup-close-btn {
+    color: #ccc;
+    background-color: #18191b;
+    border: 1px solid #202124;
+}
