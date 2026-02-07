@@ -500,7 +500,7 @@ function updateTotalCost() {
     totalLabel.textContent = "Total";
     totalCost.textContent = `${totalQuote.toFixed(4)} SOL`;
   } else {
-    totalLabel.textContent = "Total Cost";
+    totalLabel.textContent = "Total";
     const percent = tokenSupply
       ? (totalQuote / tokenSupply) * 100
       : 0;
@@ -1274,4 +1274,5 @@ wallets.push({
 
 setTradeMode("buy");
 });
+
 
