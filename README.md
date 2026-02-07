@@ -1,6 +1,6 @@
 # Solana Wallet Bundler
 
-A web-based tool that lets you **execute multiple Solana swaps in a controlled bundle**, using multiple wallets, with **drag‑and‑drop execution order**, live quotes via **Jupiter**, and a **clear execution modal**.
+A web-based tool that lets you **execute multiple Solana swaps in a controlled bundle**, using multiple wallets, with **drag‑and‑drop execution order**, live quotes via **Jupiter**, and a **clear execution modal**. It also includes a **time‑limited access gate** with optional top‑ups and a **buy/sell mode** for bundle trades.
 
 This project is designed for power users who want to:
 
@@ -17,7 +17,7 @@ This project is designed for power users who want to:
 * 🧩 **Active wallet + stack wallets**
 * ☰ **Drag‑and‑drop stack ordering** (handle-only dragging)
 * 📊 **Live SOL balance + Jupiter quotes**
-* 🧮 **Automatic total SOL calculation**
+* 🧮 **Buy totals as % of token supply, sell totals in SOL**
 * 🚀 **Staggered execution** (RPC‑safe)
 * 📋 **Execution modal with per‑wallet status**
 * 🔗 **Solscan links on success**
@@ -53,6 +53,10 @@ This project is designed for power users who want to:
 └── api/
     ├── new-address.js  # Token metadata (SolanaTracker)
     ├── sol-balance.js  # SOL balance lookup
+    ├── token-balance.js # SPL token balance lookup
+    ├── token-supply.js  # SPL token supply lookup
+    ├── ultra-order.js  # Jupiter Ultra order proxy
+    ├── ultra-execute.js # Jupiter Ultra execute proxy
     └── send-tx.js      # RPC transaction relay
 ```
 
@@ -89,13 +93,13 @@ SOLANATRACKER_API_KEY=your_api_key
 * Logo + symbol displayed
 * Token decimals cached for quotes
 
-### 4. Enter SOL amount
+### 4. Enter amount
 
 * Balance shown per wallet
 * Quote fetched from Jupiter
 * Total SOL calculated live
 
-### 5. Buy Bundle
+### 5. Buy or Sell Bundle
 
 * Execution modal always opens
 * Wallets execute **sequentially** (300ms spacing)
