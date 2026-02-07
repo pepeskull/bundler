@@ -30,7 +30,10 @@ document.addEventListener("DOMContentLoaded", () => {
 const accessPage = document.getElementById("access-page");
 const bundlePage = document.getElementById("bundle-page");
 const accessTimer = document.getElementById("access-timer");
-const ACCESS_DURATION_MS = 50000 * 60 * 1000;
+const topupBanner = document.getElementById("topup-banner");
+const topupModal = document.getElementById("topupModal");
+const ACCESS_DURATION_MS = 5 * 60 * 1000;
+const TOPUP_THRESHOLD_MS = 3 * 60 * 1000;
 let accessTimerInterval = null;
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 const SOL_DECIMALS = 9;
@@ -73,12 +76,22 @@ function startAccessTimer() {
       sessionStorage.removeItem("accessToken");
       sessionStorage.removeItem("accessGrantedAt");
       accessTimer.setAttribute("hidden", "");
+      if (topupBanner) {
+        topupBanner.classList.add("hidden");
+      }
       clearAccessTimer();
       showAccess();
       return;
     }
 
     accessTimer.textContent = formatTimer(remaining);
+    if (topupBanner) {
+      if (remaining <= TOPUP_THRESHOLD_MS) {
+        topupBanner.classList.remove("hidden");
+      } else {
+        topupBanner.classList.add("hidden");
+      }
+    }
   };
 
   tick();
@@ -93,6 +106,12 @@ function showAccess() {
   bundlePage.setAttribute("inert", "");
   if (accessTimer) {
     accessTimer.setAttribute("hidden", "");
+  }
+  if (topupBanner) {
+    topupBanner.classList.add("hidden");
+  }
+  if (topupModal) {
+    topupModal.classList.add("hidden");
   }
   clearAccessTimer();
 }
@@ -134,116 +153,125 @@ const addressInput = document.getElementById("receive-address");
 const copyBtn = document.getElementById("copy-receive-address");
 const continueBtn = document.getElementById("continue-btn");
 
-let paymentToken = null;
+const topupQrCanvas = document.getElementById("topup-qr-canvas");
+const topupAddressInput = document.getElementById("topup-receive-address");
+const topupCopyBtn = document.getElementById("topup-copy-receive-address");
+const topupContinueBtn = document.getElementById("topup-continue-btn");
+const topupCloseBtn = document.getElementById("topup-close-btn");
+const topupBtn = document.getElementById("topup-btn");
+
+let accessPaymentToken = null;
+let topupPaymentToken = null;
 
 /* ================= BUTTON STATE ================= */
 
-function setContinueState(state) {
-  continueBtn.classList.remove("waiting", "detected", "processing", "ready");
+function setButtonState(button, state) {
+  if (!button) return;
+  button.classList.remove("waiting", "detected", "processing", "ready");
 
   switch (state) {
     case "waiting":
-      continueBtn.textContent = "I’ve sent the payment";
-      continueBtn.disabled = false;
-      continueBtn.classList.add("waiting");
+      button.textContent = "I’ve sent the payment";
+      button.disabled = false;
+      button.classList.add("waiting");
       break;
 
     case "checking":
-      continueBtn.textContent = "Checking payment…";
-      continueBtn.disabled = true;
+      button.textContent = "Checking payment…";
+      button.disabled = true;
       break;
 
     case "detected":
-      continueBtn.textContent = "Payment detected";
-      continueBtn.disabled = true;
-      continueBtn.classList.add("detected");
+      button.textContent = "Payment detected";
+      button.disabled = true;
+      button.classList.add("detected");
       break;
 
     case "processing":
-      continueBtn.textContent = "Funds processing…";
-      continueBtn.disabled = true;
-      continueBtn.classList.add("processing");
+      button.textContent = "Funds processing…";
+      button.disabled = true;
+      button.classList.add("processing");
       break;
 
     case "ready":
-      continueBtn.textContent = "Continue";
-      continueBtn.disabled = false;
-      continueBtn.classList.add("ready");
+      button.textContent = "Continue";
+      button.disabled = false;
+      button.classList.add("ready");
       break;
 
     case "not-found":
-      continueBtn.textContent = "No deposit found";
-      continueBtn.disabled = true;
-      setTimeout(() => setContinueState("waiting"), 3000);
+      button.textContent = "No deposit found";
+      button.disabled = true;
+      setTimeout(() => setButtonState(button, "waiting"), 3000);
       break;
   }
 }
 
 // expose for console testing
-window.setContinueState = setContinueState;
+window.setContinueState = state => setButtonState(continueBtn, state);
 
 /* ================= CREATE PAYMENT ================= */
 
-async function createPayment() {
-  addressInput.value = "Generating…";
-  continueBtn.disabled = true;
+async function createPayment({ canvas, addressField, button, setToken }) {
+  addressField.value = "Generating…";
+  button.disabled = true;
 
   const r = await fetch("/api/create-payment");
   const j = await r.json();
 
-  paymentToken = j.token;
-  addressInput.value = j.pubkey;
+  setToken(j.token);
+  addressField.value = j.pubkey;
 
   const qrValue = `solana:${j.pubkey}?amount=${REQUIRED_SOL}`;
-  await QRCode.toCanvas(qrCanvas, qrValue, {
-  width: 220,
-  color: {
-    dark: "#1a1c20",      // QR dots (white)
-    light: "#ffffff"      // background (dark)
-  }
-});
+  await QRCode.toCanvas(canvas, qrValue, {
+    width: 220,
+    color: {
+      dark: "#1a1c20",      // QR dots (white)
+      light: "#ffffff"      // background (dark)
+    }
+  });
 
-  setContinueState("waiting");
+  setButtonState(button, "waiting");
 }
 
 /* ================= VERIFY PAYMENT (ON CLICK) ================= */
 
-async function verifyPaymentOnce() {
-  setContinueState("checking");
+async function verifyPaymentOnce({ token, button, onSuccess }) {
+  setButtonState(button, "checking");
 
   try {
     const r = await fetch("/api/verify-payment", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: paymentToken })
+      body: JSON.stringify({ token })
     });
 
     const j = await r.json();
 
     if (!j.paid) {
-      setContinueState("not-found");
+      setButtonState(button, "not-found");
       return;
     }
 
     // Step 2: detected
-    setContinueState("detected");
+    setButtonState(button, "detected");
 
-    // Grant access
-    sessionStorage.setItem("accessToken", j.access || "ok");
-    sessionStorage.setItem("accessGrantedAt", Date.now().toString());
+    if (typeof onSuccess === "function") {
+      onSuccess(j);
+    }
 
     // Step 3 → 4
     setTimeout(() => {
-      setContinueState("processing");
+      setButtonState(button, "processing");
 
       setTimeout(() => {
-        setContinueState("ready");
+        setButtonState(button, "ready");
       }, 1200);
     }, 800);
 
   } catch (err) {
     console.error("VERIFY FAILED:", err);
-    setContinueState("not-found");
+    setButtonState(button, "not-found");
   }
 }
 
@@ -258,6 +286,65 @@ copyBtn.onclick = async () => {
   setTimeout(() => (copyBtn.textContent = original), 1200);
 };
 
+if (topupCopyBtn) {
+  topupCopyBtn.onclick = async () => {
+    if (!topupAddressInput.value || topupAddressInput.value.includes("Generating")) return;
+
+    await navigator.clipboard.writeText(topupAddressInput.value);
+    const original = topupCopyBtn.textContent;
+    topupCopyBtn.textContent = "Copied!";
+    setTimeout(() => (topupCopyBtn.textContent = original), 1200);
+  };
+}
+
+if (topupBtn) {
+  topupBtn.onclick = () => {
+    if (!topupModal) return;
+    topupModal.classList.remove("hidden");
+    createPayment({
+      canvas: topupQrCanvas,
+      addressField: topupAddressInput,
+      button: topupContinueBtn,
+      setToken: token => {
+        topupPaymentToken = token;
+      }
+    });
+  };
+}
+
+if (topupCloseBtn) {
+  topupCloseBtn.onclick = () => {
+    if (!topupModal) return;
+    topupModal.classList.add("hidden");
+  };
+}
+
+if (topupContinueBtn) {
+  topupContinueBtn.onclick = () => {
+    if (topupContinueBtn.classList.contains("ready")) {
+      if (topupModal) topupModal.classList.add("hidden");
+      setButtonState(topupContinueBtn, "waiting");
+      return;
+    }
+
+    verifyPaymentOnce({
+      token: topupPaymentToken,
+      button: topupContinueBtn,
+      onSuccess: () => {
+        sessionStorage.setItem("accessGrantedAt", Date.now().toString());
+        startAccessTimer();
+        if (topupBanner) {
+          topupBanner.classList.add("hidden");
+        }
+        setTimeout(() => {
+          if (topupModal) topupModal.classList.add("hidden");
+          setButtonState(topupContinueBtn, "waiting");
+        }, 2500);
+      }
+    });
+  };
+}
+
 /* ================= CONTINUE BUTTON ================= */
 
 continueBtn.onclick = () => {
@@ -267,14 +354,28 @@ continueBtn.onclick = () => {
   }
 
   // User claims they paid → verify ONCE
-  verifyPaymentOnce();
+  verifyPaymentOnce({
+    token: accessPaymentToken,
+    button: continueBtn,
+    onSuccess: j => {
+      sessionStorage.setItem("accessToken", j.access || "ok");
+      sessionStorage.setItem("accessGrantedAt", Date.now().toString());
+    }
+  });
 };
 
 /* ================= INIT ================= */
 
 const unlocked = enforceAccess();
 if (!unlocked) {
-  createPayment();
+  createPayment({
+    canvas: qrCanvas,
+    addressField: addressInput,
+    button: continueBtn,
+    setToken: token => {
+      accessPaymentToken = token;
+    }
+  });
 }
 
   /* ================= SERVER ACCESS VERIFY ================= */
@@ -394,7 +495,7 @@ function updateTotalCost() {
     totalLabel.textContent = "Total";
     totalCost.textContent = `${total.toFixed(4)} ${currentSymbol || "TOKEN"}`;
   } else {
-    totalLabel.textContent = "Total";
+    totalLabel.textContent = "Total Cost";
     totalCost.textContent = `${total.toFixed(4)} SOL`;
   }
 
@@ -1147,7 +1248,3 @@ wallets.push({
 
 setTradeMode("buy");
 });
-
-
-
-
